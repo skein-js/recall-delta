@@ -1,5 +1,5 @@
 /**
- * Explanatory session-state sketch for Recall Delta 0.1-draft.1.
+ * Explanatory session-state sketch for Recall Delta 0.1-draft.2.
  * Not an SDK or a memory engine. Inputs must already pass record-shape,
  * authorization, evidence-policy, and numeric-range validation.
  */

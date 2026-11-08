@@ -17,6 +17,8 @@ The following constraints were explicit in that discussion:
 
 The current repository makes additional **proposals**, rather than treating them as previously approved decisions: separate ingestion from advancement, reduce public changes to emerged/updated/withdrawn, use versioned atomic batches, and put engine algorithms into optional profiles.
 
+The subsequent multi-user discussion adds a privacy requirement: one agent may serve many people while keeping user-specific memories segregated. The current proposal therefore makes trusted caller context, user-private defaults, explicit shared scopes, caller-owned sessions, and permission-preserving learning part of the design. Authorization remains deterministic even when recall is uncertain. Cross-scope federation and a portable sharing operation remain open design work.
+
 That split keeps the protocol reviewable while preserving the original memory-engine research goal. A stateless retrieval-plus-diff implementation is an important baseline; it is not the whole intended conceptual engine. Whether persistent activation, consolidation, or controlled variability produces a useful improvement remains an empirical question.
 
 GitHub hosting under `skein-js` follows the current request. It does not introduce a Skein runtime dependency. npm ownership, an independent organization, stewardship, and licensing remain open; the earlier Garatropic package namespace was a placeholder, not an accepted constraint.

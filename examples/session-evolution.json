@@ -1,6 +1,13 @@
 {
-  "protocolVersion": "0.1-draft.1",
-  "note": "Synthetic data. Score values and retrieval choices are illustrative, not protocol-prescribed. Operations occur in scope demo. Evidence has already been admitted; no operational truth is asserted.",
+  "protocolVersion": "0.1-draft.2",
+  "note": "Synthetic data. Score values and retrieval choices are illustrative, not protocol-prescribed. All evidence and operations belong to the demo user-private scope in the binding context. Evidence has already been admitted; no operational truth or implemented access control is asserted.",
+  "bindingContext": {
+    "tenantId": "demo-tenant",
+    "principalId": "demo-user",
+    "agentId": "demo-agent",
+    "scopeId": "demo-private",
+    "scopeKind": "user-private"
+  },
   "evidence": [
     {
       "evidenceId": "evidence-a",

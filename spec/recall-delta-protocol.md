@@ -1,6 +1,6 @@
 # Recall Delta Protocol
 
-Version **0.1-draft.1** · 8 November 2026 · Proposed requirements
+Version **0.1-draft.2** · 8 November 2026 · Proposed requirements
 
 ## 1. Definition
 
@@ -58,12 +58,71 @@ These profiles have no wire contracts yet. An engine MUST NOT advertise one as i
 
 - The **host** supplies observations and cues and consumes recalls.
 - The **service** admits evidence, maintains memory, and advances sessions.
-- The **principal** is the authenticated caller; it is established by the binding, never trusted from an observation body.
-- A **scope** is an authorized memory namespace. Each operation is bound to exactly one scope. A service MUST authorize the principal for that scope and all referenced objects before reading, traversing, scoring, or mutating them.
+- The **principal** is the effective authenticated user for the memory operation. When a service acts on that user's behalf, the binding MUST preserve both the effective user and acting-service identity. A shared agent service credential alone MUST NOT grant access to every user's memory.
+- A **tenant** is an organizational or application security boundary. Membership in a tenant does not grant access to every memory in that tenant.
+- A **scope** is an authorized memory namespace within a tenant. Each operation is bound to exactly one scope. A service MUST authorize the principal for the requested action, scope, and referenced objects before reading, traversing, scoring, or mutating them.
 
-IDs are unique within a scope and object type. References cannot implicitly cross scopes. The service MUST enforce the same boundary for direct reads, graph traversal, caches, session restoration, error details, and optional exports. A single-user local service may implement one scope; multi-tenancy is not required.
+IDs are unique within a tenant, scope, and object type. References cannot implicitly cross scopes or tenants. The service MUST enforce the same boundary for direct reads, graph traversal, caches, session restoration, error details, and optional exports. A single-user local service may implement one tenant and one private scope; multi-tenancy is not required.
 
 An evidence source is not necessarily authoritative. Memory content MUST be treated as untrusted data, not elevated to system instructions or permission to act. A recall MUST NOT itself grant access, authorize an external action, or establish whether a tool call succeeded. The host owns verification against authoritative state.
+
+### 4.1 Trusted caller context
+
+Recall may be fallible; authorization MUST use deterministic policy checks and deny access when trusted context is missing or invalid. Bindings MUST derive the effective principal from authenticated identity and verify tenant membership and scope grants. A user-supplied userId, tenantId, agentId, role, or scope name is at most a requested target, never proof of authority. Observation content, cues, and model-generated tool arguments MUST NOT replace that context.
+
+An agentId identifies the application/agent, and may be an additional policy restriction. A conversationId identifies a conversation. Neither establishes a user's identity or access rights. The person mentioned in a memory is its **subject**, which need not be its owner or an authorized reader.
+
+The core has no mandatory authentication technology. An embedded binding can use a trusted local caller; a remote binding can verify credentials and delegated identity. Both must preserve the same access semantics. This approach follows [OWASP's guidance on authenticated tenant context and isolation](https://cheatsheetseries.owasp.org/cheatsheets/Multi_Tenant_Security_Cheat_Sheet.html).
+
+### 4.2 Private and shared scopes
+
+New observations MUST enter a user-private scope unless the caller explicitly targets a scope with an authorized shared-write policy. An unbound operation MUST fail; it MUST NOT fall back to a common or shared namespace. The following scope kinds describe the proposed visibility model:
+
+| Scope kind | Eligible readers, subject to current policy | Typical use |
+| --- | --- | --- |
+| `user-private` | Owning user and services explicitly delegated to act for that user | Personal preferences and experiences across conversations |
+| `conversation` | Explicitly authorized participants and delegated services | Shared conversation evidence and temporary traces |
+| `group-shared` | Current authorized members of a team or project | Shared project experience |
+| `tenant-shared` | Explicitly authorized tenant members | Approved organizational knowledge |
+
+Scope metadata MUST identify the tenant, opaque scope ID, kind, and applicable owner or membership policy. Scope IDs do not encode authority; implementations MUST NOT infer grants from a naming convention. Read, observation admission, feedback, memory mutation, and sharing are distinct permissions. Being able to recall a shared memory does not grant permission to modify it.
+
+The scope kinds are alternatives, not an inheritance chain. A user-private scope is not readable merely because the caller belongs to the same group, tenant, or agent application. Implementations may support only user-private scopes; they MUST reject unsupported kinds rather than silently broaden access. Administrative access, if any, must be an explicit policy grant rather than an implied consequence of a private-scope label.
+
+```mermaid
+flowchart TB
+    H["Authenticated caller"] --> A["Authorize selected tenant, scope, and action"]
+    A --> P["User-private memory"]
+    A --> S["Explicitly shared memory"]
+    P --> R["Caller session for private scope"]
+    S --> T["Caller session for shared scope"]
+    R --> C["Caller-only working context"]
+    T --> C
+```
+
+*Figure 2. Private and shared recall use separate scoped sessions. The host may combine authorized outputs for the caller while retaining each result's scope and provenance. Unauthorized memories never enter recall.*
+
+### 4.3 Session ownership and combining results
+
+Each recall session MUST be bound to its creating principal, tenant, scope, and any agent restriction. This ownership covers its activation state, snapshot, deltas, feedback, and retry receipts. Shared access to underlying memories MUST NOT expose another user's session or private feedback. Session IDs are locators, not access tokens. Shared multi-user recall sessions are not defined by this core; even conversation-scope readers open separate caller-owned recall sessions.
+
+A host that needs private and shared knowledge may open a separate session for each authorized scope. It MUST retain the full tenant/scope/session/candidate identity when combining results, because IDs can repeat across scopes. Combining outputs MUST NOT broaden their audience or create cross-scope graph edges. A working context containing private results remains restricted to the caller and services authorized for those results. A federated cross-scope activation algorithm is outside this draft.
+
+### 4.4 Permission-preserving recall and learning
+
+Authorization MUST restrict the eligible memories, evidence, and associations before retrieval results enter activation, ranking, traversal, or reconstruction. Fetching private candidates and asking the language model to suppress them is not an access-control mechanism. Candidate existence, source references, competing-memory details, and scores MUST NOT disclose unauthorized records. Activation and ranking for one caller MUST NOT incorporate another user's private state.
+
+Automatically derived traces, summaries, engrams, embeddings, associations, and procedures MUST retain restrictions at least as strict as those of their sources. Within a scope, a derivation's eligible readers cannot exceed the intersection permitted by its source policies. Dependencies must remain attributable so later revocation or erasure can invalidate affected derivatives. Removing names or using more general wording does not authorize sharing.
+
+Private feedback and recall activity MUST remain in caller-specific learning state by default, even when they concern shared memories. They MUST NOT automatically modify another user's activation, shared association weights, shared factual confidence, or other cross-user learned state. Mutating shared learned state requires a separately authorized, explicitly shared input and an applicable learning policy. Background consolidation and queued work MUST carry the same caller/scope restrictions and revalidate access before publishing results.
+
+Promotion into a broader scope requires an explicit authorized sharing workflow: current access to the source, permission to disclose it, permission to write the destination, and a recorded decision/lineage. This core does not define a sharing operation or permit cross-scope evidence references. A future sharing profile must specify how protected source lineage and destination records are represented without exposing restricted evidence IDs or content. No implicit promotion is allowed while that contract is absent.
+
+### 4.5 Caches, replay, and revocation
+
+Cache entries, retry receipts, and session checkpoints MUST distinguish tenant, scope, principal, and any relevant agent restriction; session-specific entries also include session identity. Shared caches may be used only for data with an explicitly shared audience and must still enforce current access. A cached grant or previously successful read MUST NOT override revocation. Implementations need an authorization-version check, invalidation mechanism, or equivalent protection when serving results and committing work.
+
+These are protocol obligations, not a guarantee that a particular implementation cannot leak. The [isolation scenarios](conformance.md) must be exercised across storage, search, graph edges, jobs, history, and host context assembly. Infrastructure/operator access and the host's handling of already delivered data need their own controls.
 
 ## 5. Records
 
@@ -123,11 +182,11 @@ sequenceDiagram
     S-->>H: original report or unavailable status
 ```
 
-*Figure 2. Ingestion and advancement are separate. A correction adds evidence; an explicit advance communicates its effect on recall. Successful responses here represent committed results.*
+*Figure 3. Ingestion and advancement are separate. A correction adds evidence; an explicit advance communicates its effect on recall. Successful responses here represent committed results.*
 
 | Operation | Input beyond scope and requestId | Successful result and effect |
 | --- | --- | --- |
-| `describe` (read) | None | Protocol versions, engineProfile, limits, session durability, replay retention, supported optional features |
+| `describe` (read) | None | Protocol versions, engineProfile, supportedScopeKinds, limits, session durability, replay retention, supported optional features |
 | `observe` | Observation | Evidence ID; commits evidence only, without implicitly advancing sessions |
 | `readEvidence` (read) | Evidence ID | Original evidence/provenance or explicit unavailable status |
 | `openSession` | `protocolVersion`, `taskRef`, `expiresAt` | New session ID, version 0, `open` state, engineProfile, empty candidate set |
@@ -143,7 +202,7 @@ The requested protocolVersion must be one offered by describe. A session is boun
 
 Observation admission is atomic: acknowledgement means the evidence is recorded according to the advertised durability. Session advances atomically commit the snapshot, version, delta batch, and retry receipt. Services whose stores lack native transactions MUST implement equivalent visibility/recovery guarantees or reject the operation. They cannot silently offer weaker semantics under the same core contract.
 
-`describe` MUST state maximum observation size, cue size, active candidates, session lifetime, retry-receipt lifetime, delta-history lifetime, and whether acknowledged state survives a process restart. Bounds are negotiated before session creation. Core permits explicitly advertised volatile sessions; restoration of acknowledged sessions is not universally promised.
+`describe` MUST state supportedScopeKinds, maximum observation size, cue size, active candidates, session lifetime, retry-receipt lifetime, delta-history lifetime, and whether acknowledged state survives a process restart. Supported kinds do not enumerate or grant access to any scope. Bounds are negotiated before session creation. Core permits explicitly advertised volatile sessions; restoration of acknowledged sessions is not universally promised.
 
 ## 7. Session state and concurrency
 
@@ -159,7 +218,7 @@ stateDiagram-v2
     Expired --> [*]
 ```
 
-*Figure 3. Empty advances still move the version forward. Closed and expired sessions cannot be advanced; a new task session starts with a new identity.*
+*Figure 4. Empty advances still move the version forward. Closed and expired sessions cannot be advanced; a new task session starts with a new identity.*
 
 Versions are nonnegative JSON safe integers, starting at 0. Each accepted advance or close increments the version by exactly one, including an advance with no candidate changes. The service serializes writes per session. A mismatched `expectedVersion` returns `version_conflict` without applying the attempted write. The host must read current state before deciding whether to issue a new request.
 
@@ -187,19 +246,21 @@ Closing produces an empty changes batch with status `closed`, preserving its las
 
 ## 9. Delivery, retries, and resynchronization
 
-The service MUST retain each mutating request's logical payload and committed outcome for the advertised retry lifetime. A retry with the same principal, scope, operation, and requestId returns that outcome without a second write. Different payload under the same key returns `id_conflict`. These retry checks precede optimistic-version checks, so a successful advance can be retried after its original expectedVersion becomes stale. Authorization is rechecked on every retry; revocation overrides receipt replay.
+The service MUST retain each mutating request's logical payload and committed outcome for the advertised retry lifetime. A retry with the same tenant, principal, scope, operation, and requestId returns that outcome without a second write, subject to any agent/delegation restriction. Different payload under the same key returns `id_conflict`. These retry checks precede optimistic-version checks, so a successful advance can be retried after its original expectedVersion becomes stale. Authorization is rechecked on every retry; revocation overrides receipt replay.
 
 After the advertised receipt lifetime, the host MUST stop retrying an uncertain mutation as if its key were still protected. It uses `readSession` and retained history to reconcile, or opens a new session. The service cannot infer an old outcome from a missing receipt and is not required to retain all request IDs forever. This draft does not promise exactly-once delivery forever. `observe` additionally retains observation-ID deduplication while the associated evidence record is retained.
 
 Clients apply only batches whose `fromVersion` equals their current version. Redelivered older batches are ignored; gaps, conflicting content for the same version, or unavailable history require `readSession`. A successful `readDeltas` result MUST be contiguous from the requested afterVersion through its throughVersion. It MAY be a bounded prefix; the host continues from throughVersion. An up-to-date result has no batches and throughVersion equal to afterVersion. History cannot be silently skipped.
 
-A snapshot atomically supplies `sessionId`, `engineProfile`, `version`, `status` (`open`, `closed`, or `expired`), and all current candidates. Its status and payload represent the same observation of service state. The host replaces its local set in full. It must clear expired/closed recalls from active use and must discard cached recalls when access is revoked, even if previously delivered history contains them.
+A snapshot atomically supplies `sessionId`, `engineProfile`, `version`, `status` (`open`, `closed`, or `expired`), and all current candidates. Its status and payload represent the same observation of service state. The binding MUST retain and verify the session's caller/tenant/scope association for snapshots and batches, including restoration; those IDs are not additional authority. The host replaces its local set in full. It must clear expired/closed recalls from active use and must discard cached recalls when access is revoked, even if previously delivered history contains them.
 
 ## 10. Feedback and evidence discipline
 
 Feedback kinds are `confirmed`, `rejected`, `corrected`, `useful`, and `independently_supported`. The caller identifies the candidate and a committed version where that candidate was present. If the historical candidate/version is not retained, the service returns `feedback_target_unavailable`; it MUST NOT attach feedback to a different current interpretation by guesswork.
 
 Feedback MUST preserve who supplied it, its evidence references, and its stated kind. It is a report, not an automatically trusted fact. `corrected`, `confirmed`, and `independently_supported` require nonempty evidence IDs. Host/user feedback itself can first be ingested as an observation. A correction's evidence carries the corrected claim; a future encoding profile decides whether to revise, split, or supersede the underlying memory.
+
+Feedback is private to its caller-owned session unless a separate authorized workflow explicitly submits it as shared input. Evidence references remain restricted to the operation's scope. A private correction cannot be attached to a shared record through a cross-scope evidence reference; until a sharing profile exists, the host must keep that interpretation in its private context. A feedback receipt never implies permission to mutate shared memory.
 
 Recall alone, repeated cues, and replayed feedback MUST NOT count as independent factual support. A service may update accessibility on retrieval; any effect on credibility must have a separately attributable evidential basis. `useful` reports task utility, not factual correctness. Source independence cannot be guaranteed merely because two evidence IDs differ.
 
@@ -211,6 +272,7 @@ Failures contain a stable `code`, human-readable `message`, and `retryable` bool
 | --- | --- |
 | `invalid_request` | Shape/range/transition invalid; correct it before retrying |
 | `unsupported_version` / `unsupported_feature` | Negotiate another supported contract |
+| `scope_unavailable` | Scope unknown or inaccessible, or the action is not authorized; no existence disclosure |
 | `id_conflict` | Key reused with different payload; investigate caller state |
 | `version_conflict` | No write applied; read current session |
 | `resync_required` | Delta history cannot satisfy the requested contiguous range; read snapshot |
@@ -228,6 +290,8 @@ A transport timeout or lost response has unknown outcome. It is not evidence tha
 Immutability means no silent alteration while retained; it does not prohibit authorized erasure. The optional lifecycle profile must distinguish reduced accessibility, suppression, archival, and actual deletion. The core does not claim a universal deletion API or completion SLA.
 
 Regardless of profile, a service MUST enforce its declared authorization and retention policy. `readEvidence` MUST report unavailability honestly. Later advances MUST not return erased content or recover it from derived indexes; they must revise or withdraw affected candidates. Revoked objects MUST not be served from retry receipts or historical snapshots. Implementations must evaluate dependent memories, caches, and queued work; inability to meet policy cannot be hidden behind append-only storage.
+
+The same restrictions apply to derived learning state and exports. A revoked source may require invalidating an interpretation or learned association even if its text no longer quotes the source. Services MUST deny affected output until its authorization can be established, rather than reconstructing it from stale activation, caches, or model state.
 
 Already delivered host copies cannot be remotely erased by this protocol. A host is responsible for its own retention and reauthorization. Provenance references, graph topology, embeddings, and confidence metadata may themselves be sensitive; removing plaintext does not establish privacy.
 

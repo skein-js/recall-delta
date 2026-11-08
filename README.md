@@ -14,6 +14,8 @@ The protocol is independent of programming language, model, agent framework, sto
 
 The central design goal is **human-inspired, cue-dependent remembering and recall**. Recall can be absent, incomplete, or initially wrong and then improve as a conversation supplies better evidence. Remembering matters just as much: temporary traces can become durable memories through selective encoding and consolidation. Activation persists as the task evolves; new cues can change which memories come to mind. The exchange contract represents those behaviors; Part II explores an engine that could produce them. See the [design context](docs/design-context.md).
 
+**Private by default.** An agent serving multiple people binds memory operations to an authenticated caller and an authorized tenant/scope. Personal and shared memories have separate permissions; recall sessions and private feedback remain caller-specific even when using shared knowledge. Derived memories preserve source restrictions. See [identity and memory isolation](spec/recall-delta-protocol.md#4-actors-identity-and-boundaries).
+
 ## Part I — The protocol
 
 Read the [Recall Delta Protocol draft](spec/recall-delta-protocol.md) first. It proposes the vocabulary, operation semantics, session lifecycle, delta ordering, provenance requirements, errors, and extension boundaries.
@@ -47,7 +49,7 @@ The [claim audit](docs/claim-audit.md) records what is supported, overstated, or
 
 ## Status and feedback
 
-Version: **0.1-draft.1**. Every protocol requirement is proposed and open to change. This is an independent proposal hosted by the Skein organization, not an adopted standard. Package names, transports, bundle formats, and licensing remain undecided.
+Version: **0.1-draft.2**. Every protocol requirement is proposed and open to change. This is an independent proposal hosted by the Skein organization, not an adopted standard. Package names, transports, bundle formats, and licensing remain undecided.
 
 Start with these questions:
 

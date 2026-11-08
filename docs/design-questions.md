@@ -23,6 +23,15 @@ All decisions below are proposals. Please identify the use case that makes a dif
 11. **What must deletion mean?** The core enforces declared policy but defers a lifecycle API. Do we need a required erase-and-status contract before calling this deployable memory infrastructure?
 12. **What is actually portable?** Should the first portable artifact contain evidence and interpretations only, or also associations and session checkpoints? What losses must import explicitly report?
 
+## Multi-user isolation
+
+The draft now proposes user-private defaults, explicit shared scopes, and separate caller-owned sessions for each scope. These questions concern extensions to those boundaries, not permission to weaken them:
+
+- **How should a sharing profile work?** Which authority may promote a private interpretation, and how can it preserve lineage without exposing restricted source records?
+- **Should recall ever span scopes inside the engine?** The core currently lets the host combine results from separate authorized sessions. A federated profile would need rules for identity, graph traversal, mixed-source derivatives, revocation, and the audience of combined state.
+- **When can learning be shared?** Private feedback and activation stay caller-specific. What explicitly shared input and policy would justify updates to group-level associations or generalized procedures?
+- **What revocation contract can adapters uphold?** How are cached snapshots, derived memories, model state, background jobs, and already delivered host copies handled when source grants change?
+
 ## Adoption and evaluation
 
 13. **Which two independent implementations should prove the contract?** A small deterministic engine and an adapter over an existing project would test different assumptions. Which project exposes enough provenance and lifecycle control?

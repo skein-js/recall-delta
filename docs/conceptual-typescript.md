@@ -43,6 +43,39 @@ The host first ingests relevant observations, then explicitly chooses which sess
 
 After a successful advance the host applies the whole batch. It resolves source evidence before relying on a recalled operational fact. If a batch is missing or malformed it reads a complete snapshot. After a timeout it retries the same request ID within the advertised retry window; it does not invent a second request ID to repeat an uncertain mutation.
 
+### Trusted caller and scoped clients
+
+For an agent serving multiple people, the authentication boundary establishes the effective user and any acting service before binding a client to one tenant/scope. A possible internal shape is:
+
+```ts
+interface MemoryAccessContext {
+  tenantId: string;
+  principalId: string;
+  actingServiceId?: string;
+  agentId: string;
+  scopeId: string;
+  authorizationVersion: string;
+}
+```
+
+This is server-owned context, not additional fields the model is trusted to populate. The binding verifies identity, delegation, tenant membership, the selected scope, and permission for each operation. authorizationVersion represents a service-validated policy/grant revision; it is not authority merely because a caller supplied a string. These TypeScript fields enforce no security by themselves.
+
+Alice and Bob can use the same agentId while their user-private memories, feedback, and activation remain isolated. A memory mentioning Bob does not make Bob its owner or reader. A caller selecting a group-shared scope needs current membership and action-specific permission; a shared read does not imply a shared write.
+
+```mermaid
+flowchart TB
+    U["Verified user and delegated service"] --> A["Check current scope and action grants"]
+    A --> B["Bind MemoryAccessContext"]
+    B --> R["Retrieve only authorized memory and evidence"]
+    R --> E["Caller-specific activation and reconstruction"]
+    E --> F["Recheck grants and commit scoped state"]
+    F --> O["Return results to the authorized caller"]
+```
+
+*Figure 2. A conceptual authorization path before recall. Model-generated identity fields cannot bypass it. Each output and commit must still satisfy current access policy.*
+
+One session remains bound to one principal and scope. To combine Alice's private experience with approved team knowledge, the host keeps separate private-scope and team-scope sessions, then assembles an Alice-only working context. It preserves tenant/scope/session/candidate identity alongside each result and does not persist the mixed context into team memory. The core sketch's reducer works only after the caller/session binding has been checked; its sessionId check is not authorization.
+
 ## 3. A minimal session coordinator
 
 An implementation would need to perform these steps for `advanceSession`:
@@ -61,12 +94,12 @@ flowchart TD
     K --> O
 ```
 
-*Figure 2. Conceptual advance path. Validation failures, key conflicts, terminal states, and bounds also reject the request; the diagram highlights retry handling and the final commit boundary.*
+*Figure 3. Conceptual advance path. Validation failures, key conflicts, terminal states, and bounds also reject the request; the diagram highlights retry handling and the final commit boundary.*
 
-1. Validate the input and authenticate/authorize the scope and references.
+1. Validate the input and establish trusted caller context; authorize the scope, action, session owner, and references.
 2. Look up the retry receipt. Return a prior committed outcome only if the logical payload matches and access still permits it.
 3. Read the session at `expectedVersion` and reject terminal/expired sessions.
-4. Retrieve authorized candidates and evidence using the current cues.
+4. Retrieve authorized candidates, evidence, and graph edges using the current cues; unauthorized state never enters scoring or reconstruction.
 5. Reconstruct or select content and compute engine-local estimates.
 6. Apply emission policy, including any threshold, rounding, candidate cap, or hysteresis.
 7. Diff the last committed public set against the new public set.
@@ -103,7 +136,7 @@ flowchart LR
     B["Attributed feedback and corrections"] --> G
 ```
 
-*Figure 3. A conceptual memory lifecycle, not a mandatory core architecture. Temporary traces and durable engrams both feed recall. Trace decay does not erase retained evidence; evidence deletion is governed separately by policy.*
+*Figure 4. A conceptual memory lifecycle, not a mandatory core architecture. Temporary traces and durable engrams both feed recall. Trace decay does not erase retained evidence; evidence deletion is governed separately by policy.*
 
 A possible internal vocabulary would be:
 
@@ -137,7 +170,7 @@ interface EngineSessionState {
 }
 ```
 
-These are internal explanatory records, not a portable bundle schema. They omit scope wrappers, provenance lineage, revision history, and concurrency controls; a service must supply those boundaries. A candidate can reconstruct several memories, so candidate identity need not equal an engram ID.
+These are internal explanatory records, not a portable bundle schema. A concrete engine must attach tenant/scope ownership, source-policy dependencies, revision history, and concurrency controls. EngineSessionState is keyed by caller and scoped session; two users reading the same shared engram do not share activation. Associations cannot connect unauthorized objects or silently cross scopes. A candidate can reconstruct several memories, so candidate identity need not equal an engram ID.
 
 The smallest experiment can use explicit entity/keyword cues and evidence-backed memory records. Each advance retrieves a bounded pool, carries forward internal activation, computes updated scores, retains candidates over an emission threshold, and reports the difference from the previous public set. A complete engine would atomically commit its internal EngineSessionState together with the public snapshot and batch so retries do not apply activation twice.
 
@@ -165,8 +198,7 @@ An internal store abstraction could expose one operation such as:
 
 ```ts
 interface SessionCommit {
-  scope: string;
-  principal: string;
+  access: MemoryAccessContext;
   requestId: string;
   requestFingerprint: string;
   expectedVersion: number;
@@ -183,6 +215,8 @@ The commit's contract includes version comparison and atomic receipt/snapshot/hi
 
 SQLite would be a reasonable single-process experiment. A filesystem adapter would need specified locking, append durability, recovery, and receipt behavior. PostgreSQL could support concurrent clients. These are engineering options, not delivered capabilities. A `transactions: false` flag cannot excuse partial success under a core operation that promises atomic acknowledgement.
 
+Tenant/scope checks must cover evidence, blobs, memory records, associations, sessions, receipts, caches, and worker jobs. A filesystem path containing userId is not sufficient unless the adapter constrains path resolution and access. A shared-table PostgreSQL adapter can add row-level policies as another enforcement layer; its request role must not silently bypass those policies through owner/superuser privileges. See [PostgreSQL's row-security documentation](https://www.postgresql.org/docs/current/ddl-rowsecurity.html). No such adapter is implemented here.
+
 ## 6. Corrections and learning
 
 A correction is first an observation with its own source record. `recordFeedback` targets the candidate at a known committed version, references that record, and returns a receipt. The encoding/learning policy may later revise a durable interpretation, preserve both conflicting interpretations, or defer judgment.
@@ -190,6 +224,10 @@ A correction is first an observation with its own source record. `recordFeedback
 The next explicit advance reconstructs public candidates against the updated memory and emits an update or withdrawal. Evidence keeps the original statement and its correction while policy permits retention. A successful task outcome can support utility; it does not validate every factual claim recalled along the way.
 
 The protocol does not require learning from every feedback record, and does not define how a source proves independence. Those are design and evaluation responsibilities rather than consequences of TypeScript types.
+
+Consolidation must also preserve the audience of its evidence. A private experience may produce a private procedure or preference; changing it into a generic-sounding sentence does not make it team knowledge. A derivative's effective access cannot exceed the intersection of its source policies, and the source dependencies must remain traceable for later revocation.
+
+When Alice finds a shared memory useful, her feedback and any resulting personalization stay caller-specific by default. They do not automatically increase shared confidence or change association weights used by Bob. Shared learning needs separately authorized shared input and a defined policy. Promotion of private content requires an explicit sharing workflow; its interoperable operation is not defined in this draft. Until then the host keeps mixed private/shared interpretations in caller-private context.
 
 ## 7. What would make the experiment convincing?
 

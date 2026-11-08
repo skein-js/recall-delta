@@ -1,6 +1,6 @@
 # Proposed conformance scenarios
 
-These are reviewable behavioral scenarios for [0.1-draft.1](recall-delta-protocol.md), not an executable certification suite. Exact rankings and score values are engine-specific. A future harness should use an engine stub when testing exchange semantics so retrieval variance cannot mask a protocol failure.
+These are reviewable behavioral scenarios for [0.1-draft.2](recall-delta-protocol.md), not an executable certification suite. Exact rankings and score values are engine-specific. A future harness should use an engine stub when testing exchange semantics so retrieval variance cannot mask a protocol failure.
 
 | ID | Setup and action | Required observation |
 | --- | --- | --- |
@@ -34,5 +34,17 @@ These are reviewable behavioral scenarios for [0.1-draft.1](recall-delta-protoco
 | C28 | Submit unknown estimates | Null retained as unknown; not converted into a probability of zero |
 | C29 | Emit above maximum safe integer version | Operation rejected/new session required; no wraparound |
 | C30 | Receive bounded history pages | Each page contiguous through its stated throughVersion; next page continues from there |
+| C31 | Put another user's identity, tenant, or role in observation text or tool arguments | Trusted caller context is unchanged; no additional memory access |
+| C32 | Omit a trusted scope/caller binding | Operation denied; no fallback to shared memory |
+| C33 | Alice and Bob use the same agentId in one tenant | Their user-private records, activation, personalization, and receipts remain isolated |
+| C34 | Bob guesses Alice's sessionId for a group-shared scope both may read | Session/snapshot/delta/feedback access denied without revealing Alice's state |
+| C35 | A reader without shared-write permission submits an observation to a shared scope | Admission denied; reading shared knowledge did not grant mutation rights |
+| C36 | Consolidate restricted evidence into a generic-sounding summary, procedure, embedding, or association | Derivative audience does not broaden; source dependencies remain attributable |
+| C37 | A graph edge, ranking feature, or competing-candidate explanation references another user's private memory | Unauthorized state excluded before recall; no disclosure through score, explanation, or source metadata |
+| C38 | Alice confirms a shared candidate during a private session | Her recorded feedback/personalization stays private; no automatic change to shared confidence or Bob's association weights |
+| C39 | A background job or cached receipt survives membership/source-access revocation | Current policy blocks affected output/commit; stale grants and derived state cannot override revocation |
+| C40 | Combine private-scope and team-scope sessions whose candidate IDs collide | Host preserves scoped identities and keeps the mixed working context caller-private |
+| C41 | Attempt implicit promotion or a cross-scope source reference during consolidation | Rejected; a broader audience requires an explicit authorized sharing contract |
+| C42 | A conversation has several authorized participants | Each opens its own caller-owned recall session; conversation membership does not expose another participant's private scope/session |
 
 The [worked transcript](../examples/session-evolution.json) illustrates emerged, updated, withdrawn, unchanged, and closed states. The [TypeScript sketch](../conceptual/recall-session.ts) covers only a subset of client-side scenarios. No evidence-ingestion, authorization, durability, or real engine conformance is established by that sketch.
