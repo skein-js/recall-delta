@@ -1,5 +1,5 @@
 /**
- * Explanatory session-state sketch for Recall Delta 0.1-draft.3.
+ * Explanatory session-state sketch for Recall Delta 0.1-draft.4.
  * Not an SDK or a memory engine. Inputs must already pass record-shape,
  * authorization, evidence-policy, and numeric-range validation.
  */
@@ -23,6 +23,8 @@ export type ReasonCode =
   | "memory_revised"
   | "state_changed"
   | "temporal_context"
+  | "memory_decayed"
+  | "memory_evicted"
   | "policy_removed"
   | "budget_evicted"
   | "source_unavailable"

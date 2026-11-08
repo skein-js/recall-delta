@@ -1,6 +1,6 @@
 # Recall Delta Protocol
 
-Version **0.1-draft.3** · 8 November 2026 · Proposed requirements
+Version **0.1-draft.4** · 8 November 2026 · Proposed requirements
 
 ## 1. Definition and memory model
 
@@ -57,7 +57,7 @@ flowchart TB
 
 The central variables are activation, cue fit, association strength, and accessibility. A later cue can reactivate an old memory that was absent from the current context. Long-term memory remains durable when recalled into the working surface.
 
-### 1.4 Reinforcement and forgetting
+### 1.4 Reinforcement and decay
 
 Reinforcement changes future memory behavior. Distinct repetitions, retrieval practice, successful use, and new related experiences may strengthen accessibility, stability, or selected associations under the engine's policy. Rejection, interference, disuse, and changed context may weaken or redirect them. These are separate effects; no universal strength score has to control all of them.
 
@@ -77,7 +77,7 @@ flowchart TB
 
 *Figure 3. Reinforcement affects future recall, with distinct effects on accessibility, association strength, and stability. Events must be deduplicated so a retry does not apply the same reinforcement twice. Private learning stays private under section 4.*
 
-Forgetting usually concerns reduced accessibility, competition, fading traces, or changing associations. It is distinct from policy-driven deletion of source records. Retrieval may reinforce caller-local accessibility or associations without supplying new factual evidence. Confirmation is not required for every accessibility update; factual-confidence metadata remains a separate, secondary concern.
+**Decay** is the gradual reduction of accessibility or pathway strength under a declared policy. Forgetting can be an outcome of decay; it is not the primary operation in this model. A memory can become difficult to find while its representation remains stored. Retrieval may reinforce caller-local accessibility or associations without supplying new factual evidence. Confirmation is not required for every accessibility update; factual-confidence metadata remains a separate, secondary concern.
 
 ### 1.5 Memory evolution and changing circumstances
 
@@ -98,7 +98,24 @@ flowchart TB
 
 Implementations representing changing facts MUST distinguish when information was recorded from the period it describes. They MUST preserve revisions while policy permits and distinguish a correction from a state change when that distinction is known. Unknown dates MUST remain unknown. They MUST NOT silently present a known historical state as current solely because it has stronger activation. Historical states remain eligible for contextually appropriate recall.
 
-The [worked memory-evolution example](../examples/memory-evolution.json) and [conceptual TypeScript model](../docs/conceptual-typescript.md) map these four processes to records and policy boundaries. This is the intended memory lifecycle; later sections define the core exchange and its limits.
+### 1.6 Decay, dormancy, and eviction
+
+An engineered memory system needs bounded storage as well as recall and formation. **Decay makes a memory eligible for eviction; it does not itself delete the memory.** Low activation in one task says little about a memory's long-term value. The model therefore separates task-specific activation from persistent accessibility, stability, and retention value.
+
+```mermaid
+flowchart TB
+    accessible["Accessible memory"] -->|"Persistent decay"| dormant["Dormant but recallable"]
+    dormant -->|"Grace and retention checks pass"| eligible["Eviction-eligible"]
+    eligible -->|"Capacity or retention trigger, safeguards rechecked"| evicted["Representation evicted"]
+    dormant -->|"Reinforcement restores accessibility"| accessible
+    eligible -->|"Reinforcement or changed value cancels eligibility"| dormant
+```
+
+*Figure 5. Dormancy is reversible and dormant memories can still respond to strong cues. Eligibility requires sustained decay, a grace period without qualifying reinforcement, low retention value, and dependency/protection checks. Eviction is a separate capacity or retention decision; it is not evidence erasure.*
+
+A rarely recalled historical event, a stable preference, or a unique useful procedure may remain valuable for a long time. Age, a job change, or absence from the current task MUST NOT alone make it disposable. Reinforcement can restore accessibility or restart the grace period before eviction. Section 12 defines the retention safeguards and storage accounting; no universal decay rate, grace period, or score threshold is prescribed.
+
+The [worked memory-evolution example](../examples/memory-evolution.json), [decay and eviction cases](../examples/decay-eviction.json), and [conceptual TypeScript model](../docs/conceptual-typescript.md) map these processes to records and policy boundaries. This is the intended memory lifecycle; later sections define the core exchange and its limits.
 
 ## 2. Status and conformance language
 
@@ -115,9 +132,9 @@ Optional profiles are deliberately outside the core:
 | Profile | Possible responsibility |
 | --- | --- |
 | Memory lifecycle | Detailed formation/learning receipts, consolidation, merging, splitting, and semantic abstractions |
-| Associative activation | Weighted edges, propagation, inhibition, decay |
+| Associative activation | Weighted edges, propagation, inhibition, task-activation decay |
 | Stochastic recall | Controlled variability, random-source identity, reproducibility limits |
-| Lifecycle management | Suppression, archival, deletion, retention completion reporting |
+| Lifecycle management | Persistent-accessibility decay, dormancy, bounded retention, eviction, archival, erasure, completion reporting |
 | Portable bundles | Export/import of canonical records with provenance and policy |
 | Context assembly | Token budgets and model-specific context construction |
 
@@ -169,7 +186,7 @@ flowchart TB
     T --> C
 ```
 
-*Figure 5. Private and shared recall use separate scoped sessions. The host may combine authorized outputs for the caller while retaining each result's scope and provenance. Unauthorized memories never enter recall.*
+*Figure 6. Private and shared recall use separate scoped sessions. The host may combine authorized outputs for the caller while retaining each result's scope and provenance. Unauthorized memories never enter recall.*
 
 ### 4.3 Session ownership and combining results
 
@@ -214,7 +231,7 @@ A candidate is one surfaced interpretation in a session:
 | `candidateId` | Stable identity within the session; independent of a storage row ID |
 | `memoryRefs` | Array of opaque trace/engram references, possibly empty |
 | `content` | The recalled interpretation as JSON |
-| `activation` | Engine-local accessibility estimate in [0, 1] |
+| `activation` | Engine-local, session-specific activation estimate in [0, 1]; distinct from persistent accessibility and retention value |
 | `relevance` | Engine-local fit to the current cues in [0, 1], or null if unknown |
 | `validTime` (optional) | `{from, until}` for a temporal claim, or null when unknown; UTC bounds use an inclusive start and exclusive end. A null from is an unknown start; a null until means no end has been recorded. Omission does not assert current validity. |
 | `factualConfidence` | Engine-local credibility estimate in [0, 1], or null if unknown |
@@ -254,7 +271,7 @@ sequenceDiagram
     S-->>H: original report or unavailable status
 ```
 
-*Figure 6. Ingestion and advancement are separate. A correction adds evidence; an explicit advance communicates its effect on recall. Successful responses here represent committed results.*
+*Figure 7. Ingestion and advancement are separate. A correction adds evidence; an explicit advance communicates its effect on recall. Successful responses here represent committed results.*
 
 | Operation | Input beyond scope and requestId | Successful result and effect |
 | --- | --- | --- |
@@ -290,7 +307,7 @@ stateDiagram-v2
     Expired --> [*]
 ```
 
-*Figure 7. Empty advances still move the version forward. Closed and expired sessions cannot be advanced; a new task session starts with a new identity.*
+*Figure 8. Empty advances still move the version forward. Closed and expired sessions cannot be advanced; a new task session starts with a new identity.*
 
 Versions are nonnegative JSON safe integers, starting at 0. Each accepted advance or close increments the version by exactly one, including an advance with no candidate changes. The service serializes writes per session. A mismatched `expectedVersion` returns `version_conflict` without applying the attempted write. The host must read current state before deciding whether to issue a new request.
 
@@ -312,7 +329,7 @@ A batch contains `sessionId`, `engineProfile`, `fromVersion`, `toVersion`, `stat
 
 Changes MUST describe the complete difference between the old and new host-visible sets. Every changed field is material at the protocol boundary. Engines MAY use rounding, thresholds, or hysteresis before committing their public state, but MUST NOT change a public snapshot without the corresponding delta. Unchanged advances have `changes: []`; silence is distinct from transport failure.
 
-Standard reason codes are `cue_match`, `cue_changed`, `evidence_changed`, `feedback_applied`, `memory_formed`, `association_changed`, `reinforced`, `memory_revised`, `state_changed`, `temporal_context`, `policy_removed`, `budget_evicted`, and `source_unavailable`. Additional codes use `x-` prefixes and MUST NOT change transition semantics. Reasons distinguish new cues from reinforcement, revision, and changed world state without requiring every internal learning event to emit a public recall. Strengthening and weakening refer to named scores in an update. Suppression is an internal policy; its public removal is a withdrawal.
+Standard reason codes are `cue_match`, `cue_changed`, `evidence_changed`, `feedback_applied`, `memory_formed`, `association_changed`, `reinforced`, `memory_revised`, `state_changed`, `temporal_context`, `memory_decayed`, `memory_evicted`, `policy_removed`, `budget_evicted`, and `source_unavailable`. Additional codes use `x-` prefixes and MUST NOT change transition semantics. Reasons distinguish new cues from reinforcement, revision, changed world state, and retention effects without requiring every internal learning event to emit a public recall. `memory_evicted` concerns a stored representation; `budget_evicted` concerns the surfaced candidate budget. Neither means source evidence was erased. Strengthening and weakening refer to named scores in an update. Suppression is an internal policy; its public removal is a withdrawal.
 
 Closing produces an empty changes batch with status `closed`, preserving its last set as historical state. Expiry need not produce a retained batch; a read or an expired-operation error tells the host to discard the current set.
 
@@ -366,14 +383,55 @@ Failures contain a stable `code`, human-readable `message`, and `retryable` bool
 | `session_unavailable` | Unknown, unauthorized, or no longer retained; do not infer existence |
 | `evidence_unavailable` | Evidence absent, inaccessible, or deleted; content MUST NOT be reconstructed as if original |
 | `feedback_target_unavailable` | Historical target cannot be resolved |
-| `limit_exceeded` | Advertised bound exceeded; reduce request or start another session |
+| `limit_exceeded` | Advertised request or storage bound exceeded; reduce the request or resolve the stated capacity limit; a new session does not bypass a scope's storage limit |
 | `temporarily_unavailable` | No committed result returned; retry same requestId within receipt lifetime or reconcile |
 
 A transport timeout or lost response has unknown outcome. It is not evidence that a mutation failed. An engine MUST NOT acknowledge a partially committed operation as success.
 
 ## 12. Retention, provenance availability, and privacy
 
-Immutability means no silent alteration while retained; it does not prohibit authorized erasure. The optional lifecycle profile must distinguish reduced accessibility, suppression, archival, and actual deletion. The core does not claim a universal deletion API or completion SLA.
+### 12.1 Distinct lifecycle decisions
+
+Immutability means no silent alteration while retained; it does not prohibit authorized erasure. The optional lifecycle profile MUST distinguish these effects. The core does not claim a universal deletion API or completion SLA.
+
+| Decision | Meaning |
+| --- | --- |
+| Activation decay | A memory becomes less active in one caller's task; its durable representation remains |
+| Persistent-accessibility decay | Durable accessibility/pathway strength decreases under engine policy |
+| Dormancy | A retained memory is less readily accessible but can still respond to relevant cues |
+| Consolidation or compression | Representations are combined or reduced while preserving declared meaning, history, lineage, and source restrictions |
+| Archival | A retained representation moves to another storage tier; it still occupies storage |
+| Eviction | A chosen representation is removed from the managed memory store, with references reconciled; source evidence has a separate policy |
+| Erasure | Content and affected derivatives become unavailable under an explicit data-removal policy, independent of decay or capacity pressure |
+
+### 12.2 When decay permits eviction
+
+An engine implementing decay-based eviction MUST declare its evaluation time basis, decay/checkpoint rules, dormancy threshold, grace period, qualifying reinforcement events, retention-value criteria, protections, dependency rules, and eviction unit. No numeric defaults are mandated. A background sweep, admission path, or explicit maintenance cycle may evaluate these rules; absence of a recall call MUST NOT prevent an advertised retention rule from being enforced.
+
+Decay-based eligibility requires **all** of the following at the decision time:
+
+1. Persistent accessibility has remained below the declared dormancy threshold for the grace period. Low session activation, age, or last-access time alone is insufficient. If continuous dormancy cannot be established, the engine MUST conservatively establish a new start rather than invent elapsed grace.
+2. No qualifying reinforcement has occurred within that period. Such reinforcement MUST cancel prior eligibility and restart grace or restore accessible status as appropriate. A retried event MUST NOT refresh the clock again. Mere index scans or maintenance reads are not reinforcement.
+3. Assessed retention value is at or below the configured eviction cutoff. Criteria SHOULD consider use across tasks, stability, uniqueness, historical usefulness, redundancy, and the value of dependencies. Unknown value MUST NOT be treated as zero. Factual confidence is not a substitute for retention value.
+4. No applicable retention protection blocks removal, and dependencies can be safely reconciled. A pin, unique historical record, supporting memory, or required recovery record must be evaluated under the declared policy; supersession alone is not permission to remove it.
+
+Eligibility is provisional, not an irreversible queue. An engine MUST recheck current state, reinforcement, protections, source policy, and dependencies before committing eviction. Concurrent reinforcement or a revised value assessment can invalidate a stale decision. Private personalization can reset a caller's overlay without changing a shared base memory's retention state; shared maintenance requires its own authority under section 4.
+
+### 12.3 When eligible memory is evicted
+
+The engine MAY evict eligible representations when a declared capacity budget is under pressure, or when an explicit retention rule calls for removal. It SHOULD select low marginal retention value relative to the bytes actually reclaimable, while honoring protections and dependencies. Zero-reclaim removals do not solve storage pressure. Explicit erasure or a separately declared mandatory expiry can bypass decay eligibility; they MUST NOT be reported as decay-based eviction.
+
+A bounded-retention implementation MUST declare its accounting boundary, hard limit, maintenance target/headroom, and behavior when the target cannot be reached. Accounting MUST cover all service-managed retained tiers within that boundary: traces, engrams and versions, associations, private overlays, evidence/artifacts, indexes/caches, snapshots/history, retry/learning receipts, and eviction markers. Moving data to an archive does not reclaim total retained bytes. External stores and already delivered host copies MUST be named as outside that boundary rather than silently counted as reclaimed. Shared bytes MUST NOT be counted as reclaimed while another retained reference keeps them allocated.
+
+Eviction MUST remove or reconcile incident graph edges, indexes, caches, and dependent interpretations before those paths are used again. The engine MUST account for any representation still retained in session history or receipts; removing an engram does not by itself erase those copies. Required retry/durability promises continue to apply. Maintenance work and its markers also consume capacity; implementations need enough headroom to commit or recover cleanup.
+
+If no safe eligible set can reclaim enough space, the engine MUST report capacity exhaustion or enforce declared backpressure/admission limits. It MAY first consolidate safely or reduce new admission. It MUST NOT silently override protections, discard required receipts, or claim an archive solved a total-storage limit. An observation already acknowledged as retained cannot be silently lost; its processing or retention outcome must follow the advertised contract. A core call rejected before commit for an advertised storage limit uses `limit_exceeded`; lifecycle maintenance outcomes remain profile-defined.
+
+Eviction may leave enough retained evidence to form a memory again later. The engine MUST declare re-encoding conditions, such as a genuinely new experience, a new relevant cue, or a bounded reconsideration interval. Routine background processing MUST NOT immediately recreate every evicted representation from unchanged evidence. Any scoped eviction marker used to prevent that loop has a declared lifetime, contains only necessary metadata, remains subject to privacy policy, and counts toward the budget.
+
+Maintenance MUST NOT silently rewrite an existing session's committed public set. A subsequent explicit advance communicates any affected update or withdrawal using section 8; evicting one supporting engram need not withdraw a candidate reconstructable from other authorized retained memories. Ordinary capacity eviction does not retroactively revoke authorized historical snapshots. Erasure and access revocation impose the stronger restrictions below.
+
+### 12.4 Erasure and access revocation
 
 Regardless of profile, a service MUST enforce its declared authorization and retention policy. `readEvidence` MUST report unavailability honestly. Later advances MUST not return erased content or recover it from derived indexes; they must revise or withdraw affected candidates. Revoked objects MUST not be served from retry receipts or historical snapshots. Implementations must evaluate dependent memories, caches, and queued work; inability to meet policy cannot be hidden behind append-only storage.
 

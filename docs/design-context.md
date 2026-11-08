@@ -12,6 +12,10 @@ The later clarification makes finding and evolving memories the primary objectiv
 
 Memory evolution also includes genuine changes in circumstances. Learning that a person changed jobs updates current associations while preserving earlier employment as useful history. That is distinct from correcting an originally mistaken interpretation. The draft therefore distinguishes recorded time from described validity and adds temporal versions to the conceptual implementation.
 
+The subsequent retention discussion adds **decay** as a central process alongside formation and recall. Forgetting is a possible outcome, rather than the primary operation. Persistent accessibility can decline independently of task activation; long-term memory cannot simply accumulate without a storage policy. The agreed direction is accessible memory, reversible dormancy, then provisional eviction eligibility after sustained decay, a grace period without qualifying reinforcement, low retention value, and protection/dependency checks. Eviction follows capacity pressure or an explicit retention rule, not age or absence from one task alone. Reinforcement can interrupt that progression, and historical usefulness can justify retention after a fact changes.
+
+The current draft makes that direction concrete with proposed accounting and maintenance rules: count every retained storage tier, distinguish archival from reclaimed capacity, reconcile dependencies, fence eviction against concurrent reinforcement, and limit admission or report exhaustion when no safe eviction is possible. Numeric thresholds, decay curves, valuation algorithms, and lifecycle transport operations remain reviewable implementation/profile choices.
+
 The following constraints were explicit in that discussion:
 
 - Remain usable independently of Skein or any other agent framework.

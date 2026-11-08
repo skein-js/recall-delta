@@ -1,0 +1,170 @@
+{
+  "protocolVersion": "0.1-draft.4",
+  "note": "Synthetic policy cases, not a core wire transcript or execution results. All scores, sizes, and the 30-day grace period are arbitrary illustrations. A whole engram with its versions is the eviction unit. Source evidence, historical session payloads, and required receipts remain separately accounted; no erasure is requested.",
+  "bindingContext": {
+    "tenantId": "demo-tenant",
+    "principalId": "demo-user",
+    "agentId": "demo-agent",
+    "scopeId": "demo-private",
+    "scopeKind": "user-private"
+  },
+  "at": "2026-10-01T00:00:00Z",
+  "memoryId": "memory-redundant-summary",
+  "policy": {
+    "policyId": "demo-decay-policy",
+    "revision": "1",
+    "dormantBelow": 0.15,
+    "graceMs": 2592000000,
+    "maximumEvictionValue": 0.2
+  },
+  "checkpoints": {
+    "accessible": {
+      "revision": 0,
+      "evaluatedAt": "2026-08-01T00:00:00Z",
+      "accessibility": 0.5,
+      "lastReinforcedAt": "2026-08-01T00:00:00Z",
+      "dormantSince": null,
+      "phase": "accessible"
+    },
+    "dormant": {
+      "revision": 1,
+      "evaluatedAt": "2026-09-01T00:00:00Z",
+      "accessibility": 0.12,
+      "lastReinforcedAt": "2026-08-01T00:00:00Z",
+      "dormantSince": "2026-09-01T00:00:00Z",
+      "phase": "dormant"
+    },
+    "withinGrace": {
+      "revision": 2,
+      "evaluatedAt": "2026-09-20T00:00:00Z",
+      "accessibility": 0.09,
+      "lastReinforcedAt": "2026-08-01T00:00:00Z",
+      "dormantSince": "2026-09-01T00:00:00Z",
+      "phase": "dormant"
+    },
+    "eligible": {
+      "revision": 3,
+      "evaluatedAt": "2026-10-01T00:00:00Z",
+      "accessibility": 0.07,
+      "lastReinforcedAt": "2026-08-01T00:00:00Z",
+      "dormantSince": "2026-09-01T00:00:00Z",
+      "phase": "eviction-eligible"
+    },
+    "reinforced": {
+      "revision": 4,
+      "evaluatedAt": "2026-10-01T00:00:01Z",
+      "accessibility": 0.45,
+      "lastReinforcedAt": "2026-10-01T00:00:01Z",
+      "dormantSince": null,
+      "phase": "accessible"
+    }
+  },
+  "assessment": {
+    "memoryId": "memory-redundant-summary",
+    "retentionValue": 0.08,
+    "reclaimableBytes": 2600,
+    "protected": false,
+    "blockingDependency": false
+  },
+  "budget": {
+    "accountedAt": "2026-10-01T00:00:00Z",
+    "hardLimitBytes": 13000,
+    "targetBytes": 10000,
+    "usedBytes": {
+      "sourceEvidence": 3000,
+      "memoryAndOverlays": 6000,
+      "associations": 300,
+      "indexesAndCaches": 1500,
+      "operational": 1200
+    }
+  },
+  "cases": [
+    {
+      "id": "quiet-task",
+      "setup": "Zero activation in an unrelated task; durable accessibility is 0.5.",
+      "expected": "No dormancy or eviction is inferred from session activation."
+    },
+    {
+      "id": "grace-not-elapsed",
+      "checkpoint": "withinGrace",
+      "evaluateAt": "2026-09-20T00:00:00Z",
+      "expected": "Retain dormant memory; 19 days is less than the 30-day grace period."
+    },
+    {
+      "id": "eligible-without-trigger",
+      "checkpoint": "eligible",
+      "trigger": null,
+      "expected": "Retain the eligible memory; low accessibility and grace do not themselves delete it."
+    },
+    {
+      "id": "capacity-pressure",
+      "checkpoint": "eligible",
+      "trigger": "capacity-pressure",
+      "expected": {
+        "effect": "engram.evicted",
+        "netReclaimedBytes": 2600,
+        "retainedBytesAfter": 9400,
+        "sourceEvidenceBytesAfter": 3000,
+        "targetReached": true
+      }
+    },
+    {
+      "id": "reinforcement-race",
+      "plannedStoreRevision": "store-before-reinforcement",
+      "currentStoreRevision": "store-after-reinforcement",
+      "currentCheckpoint": "reinforced",
+      "expected": "Reject stale eviction plan; a fresh view cancels eligibility. Retrying the same reinforcement event does not refresh its time again."
+    },
+    {
+      "id": "historical-value",
+      "checkpoint": "eligible",
+      "assessmentOverride": {
+        "retentionValue": 0.9
+      },
+      "expected": "Reassessment removes eligibility. A superseded but useful historical memory is retained."
+    },
+    {
+      "id": "unknown-value",
+      "checkpoint": "eligible",
+      "assessmentOverride": {
+        "retentionValue": null
+      },
+      "expected": "Reassessment removes eligibility; unknown value is not zero."
+    },
+    {
+      "id": "protected-or-dependent",
+      "checkpoint": "eligible",
+      "assessmentOverrides": [
+        {
+          "protected": true
+        },
+        {
+          "blockingDependency": true
+        }
+      ],
+      "expected": "Either condition independently blocks eviction until resolved by authorized policy."
+    },
+    {
+      "id": "no-reclaimable-bytes",
+      "checkpoint": "eligible",
+      "assessmentOverride": {
+        "reclaimableBytes": 0
+      },
+      "expected": "Do not select this item to solve storage pressure; other retained references keep the bytes allocated."
+    },
+    {
+      "id": "capacity-exhausted",
+      "trigger": "capacity-pressure",
+      "eligibleNetReclaimableBytes": 0,
+      "expected": "Report capacity exhaustion and apply declared backpressure/admission limits; do not override protections."
+    },
+    {
+      "id": "re-encoding",
+      "expected": "Unchanged evidence is not immediately reprocessed to recreate the evicted summary. A later qualifying cue or new experience can permit re-encoding under policy."
+    },
+    {
+      "id": "session-visibility",
+      "expected": "Eviction does not change the committed session snapshot. On a later explicit advance, affected candidates are revised or withdrawn with memory_evicted only where eviction changes the public set."
+    }
+  ]
+}

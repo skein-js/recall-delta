@@ -16,7 +16,9 @@ The protocol is independent of programming language, model, agent framework, sto
 
 The central design goal is **finding memories and letting memory evolve**. Recall can be absent, incomplete, or initially wrong and become more specific as useful cues accumulate. A salient experience may form a durable memory after one encounter; rehearsal, retrieval, and useful outcomes may reinforce later accessibility. New experiences can revise an interpretation or change which fact is current. An earlier memory can remain useful for historical recall even after circumstances change.
 
-The [illustrated memory model](spec/recall-delta-protocol.md#1-definition-and-memory-model) covers formation, associative recall, reinforcement, and evolution over time. The human analogy motivates the design; the proposal does not claim to reproduce a brain. Context compaction and credibility metadata are supporting concerns. See the [design context](docs/design-context.md).
+Memory also needs **decay and bounded retention**. Persistent accessibility can decline until a memory becomes dormant. Sustained dormancy, elapsed grace, low retention value, and protection/dependency checks can make it eviction-eligible. Capacity pressure or an explicit retention rule then governs eviction. Reinforcement can reverse that progression. Absence from the current task or a newer fact alone does not make a memory disposable, and eviction does not erase source evidence.
+
+The [illustrated memory model](spec/recall-delta-protocol.md#1-definition-and-memory-model) covers formation, associative recall, reinforcement, evolution, and decay. The [retention policy](spec/recall-delta-protocol.md#12-retention-provenance-availability-and-privacy) distinguishes dormancy, consolidation, archival, eviction, and erasure, with accounting across retained storage tiers. The human analogy motivates the design; the proposal does not claim to reproduce a brain. Context compaction and credibility metadata are supporting concerns. See the [design context](docs/design-context.md).
 
 **Private by default.** An agent serving multiple people binds memory operations to an authenticated caller and an authorized tenant/scope. Personal and shared memories have separate permissions; recall sessions and private feedback remain caller-specific even when using shared knowledge. Derived memories preserve source restrictions. See [identity and memory isolation](spec/recall-delta-protocol.md#4-actors-identity-and-boundaries).
 
@@ -37,12 +39,13 @@ These are illustrative outcomes, not prescribed rankings. Engines may recall dif
 
 - [Example session transcript](examples/session-evolution.json)
 - [Memory reinforcement and changing-fact example](examples/memory-evolution.json)
+- [Decay and eviction policy cases](examples/decay-eviction.json)
 - [Conformance scenarios](spec/conformance.md)
 - [Questions for reviewers](docs/design-questions.md)
 
 ## Part II — A conceptual TypeScript implementation
 
-Read the [TypeScript implementation concept](docs/conceptual-typescript.md) after the protocol. It maps the lifecycle to [memory-model types](conceptual/memory-model.ts), automatic formation policies, reinforcement, versioned temporal memory, and the existing [session reducer](conceptual/recall-session.ts).
+Read the [TypeScript implementation concept](docs/conceptual-typescript.md) after the protocol. It maps the lifecycle to [memory-model types](conceptual/memory-model.ts), automatic formation policies, reinforcement, versioned temporal memory, separate decay/eviction plans, and the existing [session reducer](conceptual/recall-session.ts).
 
 The TypeScript is an explanatory sketch. There is no SDK, memory engine, service, database adapter, or production implementation in this repository.
 
@@ -54,7 +57,7 @@ The [claim audit](docs/claim-audit.md) records what is supported, overstated, or
 
 ## Status and feedback
 
-Version: **0.1-draft.3**. Every protocol requirement is proposed and open to change. This is an independent proposal hosted by the Skein organization, not an adopted standard. Package names, transports, bundle formats, and licensing remain undecided.
+Version: **0.1-draft.4**. Every protocol requirement is proposed and open to change. This is an independent proposal hosted by the Skein organization, not an adopted standard. Package names, transports, bundle formats, and licensing remain undecided.
 
 Start with these questions:
 

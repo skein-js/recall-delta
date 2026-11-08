@@ -1,6 +1,6 @@
 # Proposed conformance scenarios
 
-These are reviewable behavioral scenarios for [0.1-draft.3](recall-delta-protocol.md), not an executable certification suite. Exact rankings and score values are engine-specific. A future harness should use an engine stub when testing exchange semantics so retrieval variance cannot mask a protocol failure.
+These are reviewable behavioral scenarios for [0.1-draft.4](recall-delta-protocol.md), not an executable certification suite. Exact rankings and score values are engine-specific. A future harness should use an engine stub when testing exchange semantics so retrieval variance cannot mask a protocol failure.
 
 | ID | Setup and action | Required observation |
 | --- | --- | --- |
@@ -64,4 +64,26 @@ These test the broader associative-memory vision under a declared reference-engi
 | M09 | Revise a candidate's known validity interval | The complete candidate update preserves temporal metadata and prior snapshots |
 | M10 | Learn a change with no known effective date | The engine preserves unknown temporal bounds rather than inventing a date |
 
-The [session transcript](../examples/session-evolution.json) illustrates emerged, updated, withdrawn, unchanged, and closed states. The [memory-evolution example](../examples/memory-evolution.json) illustrates versions, temporal queries, and reinforcement. The [session reducer](../conceptual/recall-session.ts) covers only a subset of client-side scenarios, while the [memory-model contracts](../conceptual/memory-model.ts) are types with no policy implementation. No evidence-ingestion, authorization, durability, or full memory-engine conformance is established by those sketches.
+## Decay and retention scenarios
+
+These apply to an implementation advertising the bounded-retention behavior in section 12, under its declared policy. They add no universal decay curve, numeric cutoff, or core maintenance operation. Core authorization, erasure, retry, and session guarantees continue to apply.
+
+| ID | Setup and action | Required observation under the stated policy |
+| --- | --- | --- |
+| D01 | An unrelated task gives an engram zero session activation | No persistent decay or eviction eligibility is inferred from that score alone |
+| D02 | Accessibility falls below the dormancy threshold but grace has not elapsed | Memory remains dormant and retained; relevant cues can still recall it |
+| D03 | Grace elapses without qualifying reinforcement, with low value and no protections/dependency blockers | Memory becomes provisionally eligible; no eviction without a capacity or retention trigger |
+| D04 | A qualifying reinforcement event occurs before eviction commits | Stale plan cannot commit; eligibility is cancelled and grace restarted or accessible status restored; replay does not refresh time twice |
+| D05 | A memory is old, superseded, uniquely useful for history, or has unknown retention value | Age/supersession alone is insufficient; high or unknown value blocks decay-based eligibility |
+| D06 | An eligible item is pinned or still supports a dependency that cannot safely be reconciled | Eviction blocked; maintenance cannot silently break the protection/dependency |
+| D07 | Capacity pressure occurs with several eligible memories | Selection considers marginal retention value against net reclaimable bytes; zero-reclaim removals are not counted as capacity relief |
+| D08 | Evict a representation with graph edges, derived indexes, cached payloads, or dependent interpretations | References are reconciled before reuse; no reachable dangling/invalid reconstruction; actual retained copies still count |
+| D09 | Move an engram to an archive or retain its payload in history | Total retained-byte accounting does not claim those bytes were reclaimed; evidence, overlays, receipts, markers, and cleanup work remain counted |
+| D10 | No safe eligible set reaches the maintenance target | Honest capacity exhaustion/backpressure/admission limits; no forced removal of protected items or promised retry state |
+| D11 | Unchanged evidence is encountered by background processing after eviction | No immediate automatic recreation loop; declared re-encoding triggers and bounded marker retention apply |
+| D12 | Evict a memory used by an existing recall session | Committed set does not silently change; a later advance communicates any affected update/withdrawal; ordinary eviction does not retroactively revoke authorized history |
+| D13 | Alice's private reinforcement/decay differs from Bob's for a shared engram | Private overlay changes do not mutate shared retention state or authorize shared-base eviction |
+| D14 | A sweep is retried, delayed, restarted, or races a protection/policy change | Elapsed decay is checkpointed once, unknown dormancy starts conservatively, and stale policy/store views cannot commit eviction |
+| D15 | Erasure or revocation applies to an otherwise protected or active memory | Policy removal is enforced independently of decay/grace; affected output cannot be recovered from indexes, receipts, or historical snapshots |
+
+The [session transcript](../examples/session-evolution.json) illustrates emerged, updated, withdrawn, unchanged, and closed states. The [memory-evolution example](../examples/memory-evolution.json) illustrates versions, temporal queries, and reinforcement; the [decay/eviction cases](../examples/decay-eviction.json) illustrate retention decisions and accounting. The [session reducer](../conceptual/recall-session.ts) covers only a subset of client-side scenarios, while the [memory-model contracts](../conceptual/memory-model.ts) are types with no policy implementation. No evidence-ingestion, authorization, durability, maintenance execution, or full memory-engine conformance is established by those sketches.

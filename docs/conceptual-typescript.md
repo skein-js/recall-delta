@@ -1,6 +1,6 @@
 # Part II — Conceptual TypeScript implementation
 
-This section maps the [evolving associative memory model](../spec/recall-delta-protocol.md#1-definition-and-memory-model) to a possible TypeScript engine. Experiences form traces and engrams; context activates associations; reinforcement changes future accessibility; new experiences produce revisions and temporal history. The protocol owns observable exchange behavior. These types and implementation choices are explanatory, with no published SDK, storage adapter, or complete engine.
+This section maps the [evolving associative memory model](../spec/recall-delta-protocol.md#1-definition-and-memory-model) to a possible TypeScript engine. Experiences form traces and engrams; context activates associations; reinforcement changes future accessibility; new experiences produce revisions and temporal history. Persistent accessibility can decay, and a separate retention policy can evict eligible representations. The protocol owns observable exchange behavior. These types and implementation choices are explanatory, with no published SDK, storage adapter, or complete engine.
 
 ## 1. Boundaries
 
@@ -126,13 +126,15 @@ The [compilable memory-model contracts](../conceptual/memory-model.ts) describe 
 | --- | --- |
 | `Experience` | An admitted observation and its evidence, observedAt, and recordedAt |
 | `MemoryTrace` | A temporary, cue-bearing representation with salience, accessibility, and optional expiry |
-| `Engram` | A durable memory with cue associations, salience, accessibility, stability, and version history |
+| `Engram` | A durable memory with cue associations, salience, a retention checkpoint, stability, and version history |
 | `MemoryVersion` | Recorded interpretation, evidence, validity interval, and cause of revision |
 | `Association` | A weighted connection between memories in one authorized scope |
 | `EngineSessionState` | Caller-specific activation carried across task observations |
 | `LearningEvent` / `LearningPlan` | A deduplicated input and proposed effects on traces, memory versions, or pathways |
 | `AutomaticMemoryPolicy` | Engine decisions for observation, reinforcement, and consolidation |
 | `RecallPolicy` | Cue-driven activation/reconstruction, with optional temporal hints and reinforcement effects |
+| `RetentionState` / `RetentionAssessment` | Persistent accessibility and dormancy checkpoint; separately assessed value, protection, dependencies, and reclaimable bytes |
+| `MemoryMaintenancePolicy` / `MaintenancePlan` | Separate decay and eviction plans against a versioned, maintenance-authorized store view |
 
 The engine keeps internal activation separate from the public candidate set. A weakly activated memory can remain below the emergence threshold. Likewise, an experience can leave active context while its trace or durable representation remains available to later cues.
 
@@ -160,12 +162,12 @@ The smallest associative engine can use entity, place, topic, and time cues to s
 An illustrative activation step could be:
 
 ```text
-decayed = previousActivation × exp(-decayRate × elapsedTime)
+decayed = previousActivation × exp(-sessionDecayRate × elapsedTime)
 activation = clamp(decayed + directCueSupport + boundedAssociationSupport
                    - competingCandidatePenalty, 0, 1)
 ```
 
-This is an illustrative algorithm, not a protocol requirement or a validated cognitive model. It makes no-input decay explicit: without cues or association support, positive decay lowers prior activation. Units, normalization, candidate budgets, time source, and thresholds need definition for a real engine. Temporal relevance is another filter: a strongly associated old state must not silently masquerade as the current state.
+This is an illustrative algorithm, not a protocol requirement or a validated cognitive model. It makes no-input decay of **session activation** explicit: without cues or association support, positive decay lowers prior activation. It is not a long-term eviction rule. Units, normalization, candidate budgets, time source, and thresholds need definition for a real engine. Temporal relevance is another filter: a strongly associated old state must not silently masquerade as the current state.
 
 Reinforcement is represented by an attributed LearningEvent, not one universal confidence increment:
 
@@ -200,7 +202,7 @@ An initially wrong candidate can arise deterministically because two incidents s
 
 ## 6. Storage and transactions
 
-One possible internal model has repositories for evidence, traces, versioned engrams, associations, learning events, feedback, sessions, batches, and retry receipts. These are reference-engine records; they need not become mandatory wire objects in every core binding.
+One possible internal model has repositories for evidence, traces, versioned engrams, associations, retention checkpoints, learning events, feedback, sessions, batches, retry receipts, and minimal eviction markers. These are reference-engine records; they need not become mandatory wire objects in every core binding.
 
 An internal store abstraction could expose one operation such as:
 
@@ -250,7 +252,48 @@ Consolidation must also preserve the audience of its evidence. A private experie
 
 When Alice finds a shared memory useful, her feedback and any resulting personalization stay caller-specific by default. They do not automatically increase shared confidence or change association weights used by Bob. Shared learning needs separately authorized shared input and a defined policy. Promotion of private content requires an explicit sharing workflow; its interoperable operation is not defined in this draft. Until then the host keeps mixed private/shared interpretations in caller-private context.
 
-## 8. What would make the experiment convincing?
+## 8. Persistent decay and bounded retention
+
+Engram.retention is the canonical persistent checkpoint in this sketch; it replaces an unqualified top-level accessibility field. EngineSessionState.activationByMemoryId remains task-specific. RetentionState records accessibility, evaluatedAt, lastReinforcedAt, dormantSince, phase, and its own revision. RetentionAssessment separately records retention value, protection, blocking dependencies, and net reclaimable bytes. A phase label is a cached assessment, not permission to delete.
+
+One possible persistent decay calculation is:
+
+```text
+elapsed = evaluationTime - checkpoint.evaluatedAt
+accessibility = checkpoint.accessibility × exp(-rate(kind, stability) × elapsed)
+```
+
+This is illustrative. A real policy defines time units, nonnegative rates, clock handling, and the role of stability; it may choose another curve. Evaluate from the last committed checkpoint so repeated sweeps do not charge the same elapsed interval twice. Never infer long-term decay from an unrelated session's zero activation. Maintenance reads do not count as reinforcement. A qualifying event updates the checkpoint from its attributed event time, cancels eligibility, and resets dormancy grace; only sufficient renewed accessibility returns it to accessible status. Replayed events do not reset grace again, and delayed events must be reconciled without moving the checkpoint backward.
+
+```mermaid
+flowchart TB
+    view["Authorized versioned view"] --> decay["planDecay"]
+    decay --> checkpoint["Protected checkpoint commit"]
+    checkpoint -->|"Fresh view and eviction trigger"| select["planEviction"]
+    select --> fence{"Store and policy current?"}
+    fence -->|"No: reassess"| view
+    fence -->|"Yes"| commit["Commit cleanup and byte accounting"]
+```
+
+*Figure 6. Decay and eviction have separate planning and protected commit steps. The store revision must change when reinforcement, protections, dependencies, or accounting change; a stale eviction plan cannot win that race. The sketch implements neither the policy nor the protected applier.*
+
+MemoryMaintenancePolicy exposes planDecay and planEviction separately. RetentionPolicy supplies illustrative dormancy, grace, and value cutoffs; the policy's declared engine rules define the decay curve and qualifying reinforcement. Its RetentionView is a maintenance-authorized scope-base view, not the caller-personalized AuthorizedMemoryView used for recall. A user's low private accessibility cannot make a shared base engram eviction-eligible. Overlay retention needs a separately authorized, separately accounted policy; the types do not implement that policy.
+
+The proposed eviction unit is a whole engram and its versions. A profile that evicts selected versions must specify which historical/known-at queries become unavailable and how their dependencies are handled. A newer employment state does not by itself make the older state disposable. Low accessibility plus elapsed grace is necessary but insufficient: unknown/high retention value, protection, or a blocking dependency prevents decay-based eligibility. A dormant engram remains a retrieval candidate for strong cues; it is not excluded merely because it is dormant.
+
+A protected maintenance applier would:
+
+1. Deduplicate the maintenance event within the declared window and recheck scope-maintenance authority, source policies, policy revision, and store revision. All relevant writes, including reinforcement and pins, must invalidate a stale view.
+2. Reassess eligibility against current state. Prefer eligible low marginal value per net reclaimable byte; do not select zero-reclaim items as a solution to storage pressure.
+3. Reconcile dependent interpretations, graph edges, indexes, and caches as part of the protected change. A store without a single transaction needs equivalent recovery and visibility fences; partially cleaned paths cannot remain usable.
+4. Record actual retained-byte accounting and minimal scoped eviction metadata together. Receipts and markers consume space, have declared retention, and prevent immediate background re-encoding from unchanged evidence. A later qualifying trigger may permit re-encoding if evidence remains authorized and retained.
+5. Return reclaimed space or capacity exhaustion. Consolidation, admission limits, and backpressure are alternatives when no safe eligible set reaches the target; maintenance cannot discard protected records or required retry history to force success.
+
+StorageBudget includes evidence, memory/overlays (including traces and retained versions), associations, indexes/caches, and operational state (snapshots/history, retry/learning receipts, markers, and cleanup work). The sum includes archives in every retained tier inside the declared boundary. targetBytes is below hardLimitBytes to reserve maintenance headroom; admission cannot exceed the hard bound and rely on future decay to repair it. Reference-shared blobs and retained session payloads reduce the bytes an eviction can actually reclaim. No marker can be kept forever for free.
+
+The [decay/eviction fixture](../examples/decay-eviction.json) illustrates a 30-day grace period and arbitrary thresholds, reinforcement invalidating a stale plan, historical-value protection, capacity exhaustion, and net-byte accounting. These are policy examples, not recommended defaults or execution results. Eviction does not delete source evidence or silently change a committed session. A later advance may emit memory_decayed or memory_evicted reasons with its candidate changes; historical snapshots remain governed by their own retention. Erasure/revocation still blocks all affected outputs under Part I section 12.4.
+
+## 9. What would make the experiment convincing?
 
 Build one small deterministic implementation and one independently written implementation, then exercise one host against both. Use the same observation fixtures and vary cue sequences, contradictory sources, retries, and missed batches. Compare against:
 
@@ -258,4 +301,4 @@ Build one small deterministic implementation and one independently written imple
 - Full recent context under the same token budget.
 - The same engine with session activation disabled.
 
-Measure memory discovery as useful cues accumulate, recovery from the wrong episode, single-exposure formation, reinforcement effects, current versus historical recall, revision preservation, host task results, cost, and latency. Compare the same engine with reinforcement or carried activation disabled. Grounding is a supplementary measure; the main question is whether the agent finds contextually useful memories and adapts as experience changes. Session state and delta delivery must earn their complexity.
+Measure memory discovery as useful cues accumulate, recovery from the wrong episode, single-exposure formation, reinforcement effects, current versus historical recall, revision preservation, host task results, cost, and latency. Also measure retained bytes across all tiers, recall of rare useful memories, unnecessary eviction, re-encoding churn, and admission behavior under a fixed capacity. Compare the same engine with reinforcement or carried activation disabled and compare eviction policies under the same total-storage budget. Grounding is a supplementary measure; the main question is whether the agent finds contextually useful memories and adapts as experience changes. Session state and delta delivery must earn their complexity.

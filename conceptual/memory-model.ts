@@ -1,6 +1,7 @@
 /**
- * Conceptual internal contracts for Recall Delta 0.1-draft.3.
- * These types explain formation, association, reinforcement, and evolution.
+ * Conceptual internal contracts for Recall Delta 0.1-draft.4.
+ * These types explain formation, association, reinforcement, evolution,
+ * and bounded retention. Maintenance methods only propose effects.
  * They are not a storage schema, transport binding, policy implementation,
  * or authorization mechanism. Callers must already have a verified scope.
  */
@@ -45,6 +46,17 @@ export interface MemoryVersion {
   readonly cause: "formed" | "reinterpretation" | "world-change" | "correction";
 }
 
+/** Durable checkpoint; independent of activation in any recall session. */
+export interface RetentionState {
+  readonly revision: number;
+  readonly evaluatedAt: string;
+  readonly accessibility: number;
+  readonly lastReinforcedAt: string | null;
+  /** Start of low-accessibility grace; reinforcement resets it; null if accessible. */
+  readonly dormantSince: string | null;
+  readonly phase: "accessible" | "dormant" | "eviction-eligible";
+}
+
 export interface Engram {
   readonly id: string;
   readonly scope: MemoryScope;
@@ -52,7 +64,7 @@ export interface Engram {
   readonly cueIds: readonly string[];
   readonly versions: readonly MemoryVersion[];
   readonly salience: number;
-  readonly accessibility: number;
+  readonly retention: RetentionState;
   readonly stability: number;
   /** Source policies must still be enforced on every derivative/read. */
   readonly sourcePolicyRefs: readonly string[];
@@ -160,4 +172,101 @@ export interface RecallPolicy {
     readonly candidates: readonly Candidate[];
     readonly reinforcement: LearningPlan | null;
   }>;
+}
+
+/** Illustrative thresholds, not a universal decay rate or retention policy. */
+export interface RetentionPolicy {
+  readonly policyId: string;
+  readonly revision: string;
+  readonly dormantBelow: number;
+  readonly graceMs: number;
+  readonly maximumEvictionValue: number;
+}
+
+/** Includes retained archives and overlays within the declared boundary. */
+export interface StorageBudget {
+  readonly accountedAt: string;
+  readonly hardLimitBytes: number;
+  readonly targetBytes: number;
+  readonly usedBytes: Readonly<{
+    sourceEvidence: number;
+    memoryAndOverlays: number;
+    associations: number;
+    indexesAndCaches: number;
+    operational: number;
+  }>;
+}
+
+export interface RetentionAssessment {
+  readonly memoryId: string;
+  /** Unknown value blocks decay-based eligibility; it is not zero. */
+  readonly retentionValue: number | null;
+  /** Net savings after cleanup/markers; excludes still-referenced bytes. */
+  readonly reclaimableBytes: number;
+  readonly protected: boolean;
+  readonly blockingDependency: boolean;
+}
+
+/**
+ * Maintenance-authorized scope-base view, not a personalized recall view.
+ * A reader's private overlay cannot authorize eviction of shared base memory.
+ */
+export interface RetentionView {
+  readonly scope: MemoryScope;
+  readonly storeRevision: string;
+  readonly engrams: readonly Engram[];
+  readonly associations: readonly Association[];
+  readonly assessments: readonly RetentionAssessment[];
+  readonly budget: StorageBudget;
+}
+
+export type MaintenanceEffect =
+  | {
+      readonly type: "retention.checkpointed";
+      readonly memoryId: string;
+      readonly expectedRetentionRevision: number;
+      readonly current: RetentionState;
+    }
+  | {
+      /** Protected applier must reconcile dependencies, edges, and caches. */
+      readonly type: "engram.evicted";
+      readonly memoryId: string;
+      readonly expectedMemoryRevision: number;
+      readonly expectedRetentionRevision: number;
+      readonly evictedAt: string;
+      /** Null: no timer-based re-encoding; a new qualifying trigger is needed. */
+      readonly reconsiderAfter: string | null;
+    };
+
+export interface MaintenancePlan {
+  readonly eventId: string;
+  readonly scope: MemoryScope;
+  readonly policyId: string;
+  readonly expectedPolicyRevision: string;
+  /** Fence memory, reinforcement, protections, dependencies, and accounting. */
+  readonly expectedStoreRevision: string;
+  readonly outcome:
+    | "decay-only"
+    | "within-budget"
+    | "reclaim-planned"
+    | "capacity-exhausted";
+  readonly effects: readonly MaintenanceEffect[];
+}
+
+/** No destructive operation is implemented; plans need a protected applier. */
+export interface MemoryMaintenancePolicy {
+  planDecay(input: {
+    readonly eventId: string;
+    readonly at: string;
+    readonly policy: RetentionPolicy;
+    readonly view: RetentionView;
+  }): Promise<MaintenancePlan>;
+
+  planEviction(input: {
+    readonly eventId: string;
+    readonly at: string;
+    readonly trigger: "capacity-pressure" | "retention-rule";
+    readonly policy: RetentionPolicy;
+    readonly view: RetentionView;
+  }): Promise<MaintenancePlan>;
 }

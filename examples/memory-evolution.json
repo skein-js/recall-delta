@@ -1,6 +1,6 @@
 {
-  "protocolVersion": "0.1-draft.3",
-  "note": "Synthetic reference-engine records, not an implemented policy or a core wire transcript. Numeric learning effects and admission choices are illustrative. Temporal expectations evaluate the latest revision known at knownAt before applying the half-open validTime interval; they do not prescribe activation rankings.",
+  "protocolVersion": "0.1-draft.4",
+  "note": "Synthetic reference-engine records, not an implemented policy or a core wire transcript. Numeric learning effects and admission choices are illustrative. Temporal expectations evaluate the latest revision known at knownAt before applying the half-open validTime interval; they do not prescribe activation rankings. Retention checkpoints are a later illustrative state, not replay outputs from the earlier reinforcement plan; decay policy cases are in decay-eviction.json.",
   "bindingContext": {
     "tenantId": "demo-tenant",
     "principalId": "demo-user",
@@ -94,11 +94,18 @@
         }
       ],
       "salience": 0.5,
-      "accessibility": 0.4,
       "stability": 0.6,
       "sourcePolicyRefs": [
         "policy:demo-private"
-      ]
+      ],
+      "retention": {
+        "revision": 0,
+        "evaluatedAt": "2026-11-08T00:00:00Z",
+        "accessibility": 0.4,
+        "lastReinforcedAt": "2026-04-01T09:00:00Z",
+        "dormantSince": null,
+        "phase": "accessible"
+      }
     },
     {
       "id": "memory-sam-b",
@@ -132,11 +139,18 @@
         }
       ],
       "salience": 0.7,
-      "accessibility": 0.6,
       "stability": 0.5,
       "sourcePolicyRefs": [
         "policy:demo-private"
-      ]
+      ],
+      "retention": {
+        "revision": 0,
+        "evaluatedAt": "2026-11-08T00:00:00Z",
+        "accessibility": 0.6,
+        "lastReinforcedAt": null,
+        "dormantSince": null,
+        "phase": "accessible"
+      }
     }
   ],
   "associations": [

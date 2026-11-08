@@ -25,6 +25,15 @@ The primary objective is associative memory discovery and evolution. Credibility
 - **How should changing facts be represented?** Are separate engrams for successive states and versioned validity intervals sufficient, or do hosts need an explicit temporal-query profile?
 - **How can we evaluate evolution?** Distinguish finding an older relevant episode, correcting a mistaken interpretation, and recognizing a genuine change in the world.
 
+## Decay and bounded retention
+
+- **When should dormancy begin?** Which persistent-accessibility measures work across memory types without confusing low activation in one task with long-term disuse?
+- **What earns retention?** How should a policy value rare useful memories, stable preferences, unique history, redundancy, and supporting dependencies without preserving everything forever?
+- **What counts as reinforcement?** Which events restart dormancy grace, which affect only private overlays, and how should delayed events and repeated unchanged retrievals be handled?
+- **What is the eviction unit?** Whole engrams, individual versions, associations, and source evidence have different dependency and historical-query consequences. What losses must be inspectable?
+- **What is the true budget?** Does accounting include archives, shared blobs, evidence, overlays, session history, retry/learning receipts, cleanup work, and eviction markers? What happens when no safe eligible set reaches the target?
+- **When may an evicted memory form again?** Which cue, new experience, or reconsideration rule avoids both permanent suppression and immediate re-encoding churn?
+
 ## Operational semantics
 
 8. **Who advances a session?** Explicit host advancement avoids hidden updates and double-counting. Is an autonomous background-update profile essential for long-running agents?
