@@ -1,5 +1,5 @@
 /**
- * Explanatory session-state sketch for Recall Delta 0.1-draft.2.
+ * Explanatory session-state sketch for Recall Delta 0.1-draft.3.
  * Not an SDK or a memory engine. Inputs must already pass record-shape,
  * authorization, evidence-policy, and numeric-range validation.
  */
@@ -17,6 +17,12 @@ export type ReasonCode =
   | "cue_changed"
   | "evidence_changed"
   | "feedback_applied"
+  | "memory_formed"
+  | "association_changed"
+  | "reinforced"
+  | "memory_revised"
+  | "state_changed"
+  | "temporal_context"
   | "policy_removed"
   | "budget_evicted"
   | "source_unavailable"
@@ -28,6 +34,10 @@ export interface Candidate {
   readonly content: Json;
   readonly activation: number;
   readonly relevance: Estimate;
+  readonly validTime?: {
+    readonly from: string | null;
+    readonly until: string | null;
+  } | null;
   readonly factualConfidence: Estimate;
   readonly uncertainty: {
     readonly ambiguity: Estimate;

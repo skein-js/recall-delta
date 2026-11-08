@@ -1,0 +1,241 @@
+{
+  "protocolVersion": "0.1-draft.3",
+  "note": "Synthetic reference-engine records, not an implemented policy or a core wire transcript. Numeric learning effects and admission choices are illustrative. Temporal expectations evaluate the latest revision known at knownAt before applying the half-open validTime interval; they do not prescribe activation rankings.",
+  "bindingContext": {
+    "tenantId": "demo-tenant",
+    "principalId": "demo-user",
+    "agentId": "demo-agent",
+    "scopeId": "demo-private",
+    "scopeKind": "user-private"
+  },
+  "experiences": [
+    {
+      "scope": {
+        "tenantId": "demo-tenant",
+        "scopeId": "demo-private"
+      },
+      "evidenceId": "evidence-employment-a",
+      "observedAt": "2026-02-10T10:00:00Z",
+      "recordedAt": "2026-02-10T10:00:01Z",
+      "content": {
+        "person": "Sam",
+        "statement": "I work at A and started in January.",
+        "effectiveFrom": "2026-01-01T00:00:00Z"
+      }
+    },
+    {
+      "scope": {
+        "tenantId": "demo-tenant",
+        "scopeId": "demo-private"
+      },
+      "evidenceId": "evidence-job-change",
+      "observedAt": "2026-06-10T10:00:00Z",
+      "recordedAt": "2026-06-10T10:00:01Z",
+      "content": {
+        "person": "Sam",
+        "statement": "I am joining B on 1 July and leaving A then.",
+        "effectiveFrom": "2026-07-01T00:00:00Z"
+      }
+    }
+  ],
+  "formationExample": {
+    "inputEvidenceId": "evidence-employment-a",
+    "decision": "form-after-single-experience",
+    "reason": "The configured policy treats this new personal relationship as salient; repeated exposure is not required."
+  },
+  "engrams": [
+    {
+      "id": "memory-sam-a",
+      "scope": {
+        "tenantId": "demo-tenant",
+        "scopeId": "demo-private"
+      },
+      "kind": "semantic",
+      "cueIds": [
+        "person:sam",
+        "company:a",
+        "topic:earlier-project"
+      ],
+      "versions": [
+        {
+          "revision": 1,
+          "recordedAt": "2026-02-10T10:00:01Z",
+          "content": {
+            "person": "Sam",
+            "relationship": "works-at",
+            "company": "A"
+          },
+          "evidenceIds": [
+            "evidence-employment-a"
+          ],
+          "validTime": {
+            "from": "2026-01-01T00:00:00Z",
+            "until": null
+          },
+          "cause": "formed"
+        },
+        {
+          "revision": 2,
+          "recordedAt": "2026-06-10T10:00:01Z",
+          "content": {
+            "person": "Sam",
+            "relationship": "works-at",
+            "company": "A"
+          },
+          "evidenceIds": [
+            "evidence-employment-a",
+            "evidence-job-change"
+          ],
+          "validTime": {
+            "from": "2026-01-01T00:00:00Z",
+            "until": "2026-07-01T00:00:00Z"
+          },
+          "cause": "world-change"
+        }
+      ],
+      "salience": 0.5,
+      "accessibility": 0.4,
+      "stability": 0.6,
+      "sourcePolicyRefs": [
+        "policy:demo-private"
+      ]
+    },
+    {
+      "id": "memory-sam-b",
+      "scope": {
+        "tenantId": "demo-tenant",
+        "scopeId": "demo-private"
+      },
+      "kind": "semantic",
+      "cueIds": [
+        "person:sam",
+        "company:b",
+        "topic:employment"
+      ],
+      "versions": [
+        {
+          "revision": 1,
+          "recordedAt": "2026-06-10T10:00:01Z",
+          "content": {
+            "person": "Sam",
+            "relationship": "works-at",
+            "company": "B"
+          },
+          "evidenceIds": [
+            "evidence-job-change"
+          ],
+          "validTime": {
+            "from": "2026-07-01T00:00:00Z",
+            "until": null
+          },
+          "cause": "formed"
+        }
+      ],
+      "salience": 0.7,
+      "accessibility": 0.6,
+      "stability": 0.5,
+      "sourcePolicyRefs": [
+        "policy:demo-private"
+      ]
+    }
+  ],
+  "associations": [
+    {
+      "id": "association-successive-employment",
+      "scope": {
+        "tenantId": "demo-tenant",
+        "scopeId": "demo-private"
+      },
+      "fromMemoryId": "memory-sam-a",
+      "toMemoryId": "memory-sam-b",
+      "relation": "successive-employment",
+      "weight": 0.4,
+      "validTime": null,
+      "sourcePolicyRefs": [
+        "policy:demo-private"
+      ]
+    }
+  ],
+  "reinforcementExamples": [
+    {
+      "event": {
+        "eventId": "retrieval-april-1",
+        "scope": {
+          "tenantId": "demo-tenant",
+          "scopeId": "demo-private"
+        },
+        "principalId": "demo-user",
+        "kind": "retrieved",
+        "occurredAt": "2026-04-01T09:00:00Z",
+        "memoryIds": [
+          "memory-sam-a"
+        ],
+        "evidenceIds": []
+      },
+      "plan": {
+        "eventId": "retrieval-april-1",
+        "scope": {
+          "tenantId": "demo-tenant",
+          "scopeId": "demo-private"
+        },
+        "principalId": "demo-user",
+        "audience": "caller-private",
+        "effects": [
+          {
+            "type": "pathway.adjusted",
+            "memoryId": "memory-sam-a",
+            "accessibilityDelta": 0.1,
+            "stabilityDelta": 0.03
+          }
+        ]
+      },
+      "retryExpectation": "Replaying retrieval-april-1 does not apply the learning effects again. This plan says nothing about factual-confidence changes."
+    }
+  ],
+  "recallExamples": [
+    {
+      "question": "Where does Sam work in August, using current recorded knowledge?",
+      "validAt": "2026-08-01T00:00:00Z",
+      "knownAt": "2026-11-08T00:00:00Z",
+      "expected": [
+        {
+          "memoryId": "memory-sam-b",
+          "revision": 1
+        }
+      ]
+    },
+    {
+      "question": "Recall Sam's employment during the March project at A.",
+      "validAt": "2026-03-01T00:00:00Z",
+      "knownAt": "2026-11-08T00:00:00Z",
+      "expected": [
+        {
+          "memoryId": "memory-sam-a",
+          "revision": 2
+        }
+      ]
+    },
+    {
+      "question": "What was known about Sam's employment in May, before the June announcement?",
+      "validAt": "2026-05-15T00:00:00Z",
+      "knownAt": "2026-05-31T00:00:00Z",
+      "expected": [
+        {
+          "memoryId": "memory-sam-a",
+          "revision": 1
+        }
+      ]
+    },
+    {
+      "question": "Where does Sam work after the announcement but before the July change?",
+      "validAt": "2026-06-20T00:00:00Z",
+      "knownAt": "2026-06-20T00:00:00Z",
+      "expected": [
+        {
+          "memoryId": "memory-sam-a",
+          "revision": 2
+        }
+      ]
+    }
+  ]
+}

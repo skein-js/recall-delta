@@ -10,10 +10,20 @@ All decisions below are proposals. Please identify the use case that makes a dif
 
 ## Meaning and interoperability
 
+The primary objective is associative memory discovery and evolution. Credibility metadata supports that objective; it does not define it.
+
 4. **What is one candidate?** The draft gives engines ownership of identity across revisions. Can two authors apply that consistently to corrected events, semantic abstractions, merges, and splits?
 5. **Which estimates are honest?** Should activation be required if many backends only return relevance? Should ordinal or named estimates replace [0, 1] numbers? How should calibration be declared?
 6. **What should provenance promise?** References are required, but support versus context versus contradiction is a fallible classification. Should an extension carry claim-level spans, derivations, or evidence-availability summaries?
 7. **How much negative state should be visible?** The draft folds suppression into withdrawal and names the changed scores in an update. Do hosts need a separate suppression state or contradiction relationship?
+
+## Formation, reinforcement, and time
+
+- **What should a formation policy expose?** The host supplies observations automatically. Which decisions need inspectable receipts without making the host choose every durable memory?
+- **Which effects should retrieval reinforce?** How should accessibility, stability, and cue pathways change independently, and which replay/cooldown rules prevent duplicate updates?
+- **How do salient single experiences compare with repeated use?** Can an engine form a useful memory after one event while allowing low-value traces to fade?
+- **How should changing facts be represented?** Are separate engrams for successive states and versioned validity intervals sufficient, or do hosts need an explicit temporal-query profile?
+- **How can we evaluate evolution?** Distinguish finding an older relevant episode, correcting a mistaken interpretation, and recognizing a genuine change in the world.
 
 ## Operational semantics
 

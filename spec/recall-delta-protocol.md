@@ -1,35 +1,104 @@
 # Recall Delta Protocol
 
-Version **0.1-draft.2** · 8 November 2026 · Proposed requirements
+Version **0.1-draft.3** · 8 November 2026 · Proposed requirements
 
-## 1. Definition
+## 1. Definition and memory model
 
-Recall Delta Protocol is a language-neutral behavioral and data contract between an **agent host** and a **memory service**. It describes how observations become available to memory, how a task maintains a session of surfaced recollections, and how changes to those recollections are communicated with provenance and uncertainty.
+**Recall Delta is an evolving associative memory system: experiences form memories and connections; context activates relevant recollections; reinforcement and new experiences reshape what can be recalled over time.**
 
-A **recall delta** is an ordered change to the host-visible set of recall candidates in one session. It is a change in recollection, not a claim that the underlying world changed. A candidate may become more relevant without becoming more credible; an earlier interpretation may be corrected without rewriting its source evidence.
+Recall Delta Protocol is the language-neutral behavioral and data contract between an **agent host** and a **memory service** supporting that model. The host supplies observations and task context. The engine decides how experiences form traces and durable memories, how associations develop, and which memories become accessible as the task evolves.
 
-The core standardizes observable behavior. It does not prescribe a cognitive architecture, embeddings, graphs, learning rules, a database, or a transport. HTTP, MCP, and language SDK bindings would be separate specifications. A stateful search wrapper can implement this contract; any advantage over that baseline must be measured.
+A **recall delta** is an ordered change to the host-visible set of recall candidates in one session. It can reflect a new cue, reinforcement, a revised interpretation, or a change in the remembered world. The protocol distinguishes changes in what comes to mind from changes to stored memory. Both are part of the intended system.
 
-### Design intent
+The core standardizes observable exchange behavior, not one cognitive architecture, embedding model, graph algorithm, database, or transport. HTTP, MCP, and language SDK bindings would be separate specifications. A stateful search wrapper can exercise the core exchange; the full memory model additionally needs formation, association, reinforcement, and evolution policies. Performance improvements over simpler baselines must be measured.
 
-The proposal is motivated by human-inspired remembering: an experience leaves a temporary trace, useful experiences may consolidate into durable memories, and partial cues can reactivate them during a task. Recollection can be absent, ambiguous, or initially wrong. As the conversation supplies new cues or corrections, the active recollection should be able to strengthen, weaken, change, or disappear while its factual credibility remains separately represented.
+### 1.1 Human inspiration and the agent analogy
 
-These behaviors are part of the intended memory system, not merely an optimization for context windows. Recall Delta is meant to be useful as an embedded library, a service, or an engine over different stores, independently of Skein and other frameworks. Context reconstruction and compaction are downstream possibilities.
+Human episodic memory can bind people, places, objects, and other event elements so that a partial cue helps recover related elements. [Horner and colleagues](https://www.nature.com/articles/ncomms8462) provide experimental evidence for this kind of pattern completion. Retrieval practice can also improve later retention, including without feedback in the experiments of [Roediger and Karpicke](https://pubmed.ncbi.nlm.nih.gov/16507066/). These motivate associative discovery and reinforcement in the software model.
 
-The protocol gives that vision a common observable contract. The conceptual TypeScript section explores persistent activation and trace-to-engram formation. No particular biological mechanism, intentional random error, or universal improvement on every new cue is required: new evidence can legitimately increase uncertainty. The hypothesis to test is recovery and better discrimination as useful context accumulates.
+Working memory and short-term memory overlap in human theories; they are not necessarily consecutive containers. [Cowan's theoretical account](https://pmc.ncbi.nlm.nih.gov/articles/PMC2657600/) discusses these distinctions. The agent's context window is an analogy for an active working surface, not a biological equivalent. Leaving that window need not remove a trace from the memory service, and durable encoding need not wait for the window to fill.
+
+Human remembering is selective and only partly voluntary. Our engine models automatic selection using salience, novelty, recurrence, associations, and usefulness. Its short-lived traces and durable engrams are engineering concepts. A salient event may be admitted immediately; reinforcement is one route to persistence, not a requirement for every memory. We do not claim a complete model of human emotion, trauma, or neural memory. Context compaction and factual-confidence estimates support this design but do not define its purpose.
+
+### 1.2 Memory formation
+
+The default integration is **observe experiences and let memory form**. A host does not need to label every observation remember or forget. The engine's configured policies decide whether to keep a temporary trace, form a distinct engram, connect an experience to existing memory, reinforce a pathway, or allow accessibility to decline. Declared privacy and retention policies still constrain every decision.
 
 ```mermaid
-flowchart LR
-    H["Agent host"] -->|"Observe reports"| E["Evidence with provenance"]
-    E --> M["Memory interpretations"]
-    H -->|"Advance with cues"| R["Task recall session"]
-    M --> R
-    R -->|"Emerged / updated / withdrawn"| H
-    H -->|"Resolve evidence"| E
-    A["Authoritative task state"] -->|"Verify before acting"| H
+flowchart TB
+    experience["New experience"] --> trace["Temporary trace"]
+    experience --> evidence["Retained source record"]
+    trace --> working["Active working context"]
+    trace --> gate{"Formation policy"}
+    gate -->|"Selected experience"| engram["Durable engram"]
+    gate -->|"Remain temporary"| fading["Accessibility declines"]
+    engram --> links["Associations with other memories"]
+    working -->|"New cues"| gate
 ```
 
-*Figure 1. Evidence, memory interpretations, and task recall are separate. Recall changes guide the host's attention; the host still verifies operational facts against authoritative state.*
+*Figure 1. Automatic memory formation. Recent traces can participate in working context while a policy forms or updates durable memory. Source-record retention is separate from trace decay; a single salient experience can be selected without repetition.*
+
+### 1.3 Associative recall as context accumulates
+
+A memory is reachable through multiple cues: a person, place, topic, time, related episode, or learned procedure. The engine carries activation across a session and may propagate it through associations while competing memories inhibit one another. No recall, partial recall, and a contextually wrong candidate are representable outcomes.
+
+```mermaid
+flowchart TB
+    cue["Cue: presentation"] --> topic["Database design association"]
+    topic --> morning["Morning episode"]
+    topic --> afternoon["Afternoon episode"]
+    detail["New cue: transaction question"] --> afternoon
+    context["New cue: afternoon group"] --> afternoon
+    morning --> alternative["Competing recollection weakens"]
+    afternoon --> recalled["Specific recollection strengthens"]
+```
+
+*Figure 2. An illustrative association network, not a guaranteed ranking or measured human result. Shared cues initially reach competing episodes; more specific cues support the afternoon episode through additional pathways. A different cue could instead surface the morning episode. More information does not guarantee monotonically increasing recall.*
+
+The central variables are activation, cue fit, association strength, and accessibility. A later cue can reactivate an old memory that was absent from the current context. Long-term memory remains durable when recalled into the working surface.
+
+### 1.4 Reinforcement and forgetting
+
+Reinforcement changes future memory behavior. Distinct repetitions, retrieval practice, successful use, and new related experiences may strengthen accessibility, stability, or selected associations under the engine's policy. Rejection, interference, disuse, and changed context may weaken or redirect them. These are separate effects; no universal strength score has to control all of them.
+
+```mermaid
+flowchart TB
+    memory["Memory and associations"] --> recall["Recall or rehearsal"]
+    recall --> event["Attributed learning event"]
+    event --> policy{"Reinforcement policy"}
+    policy --> access["Adjust accessibility"]
+    policy --> pathways["Strengthen or weaken associations"]
+    policy --> stability["Adjust persistence"]
+    access --> later["Different recall next time"]
+    pathways --> later
+    stability --> later
+    later --> memory
+```
+
+*Figure 3. Reinforcement affects future recall, with distinct effects on accessibility, association strength, and stability. Events must be deduplicated so a retry does not apply the same reinforcement twice. Private learning stays private under section 4.*
+
+Forgetting usually concerns reduced accessibility, competition, fading traces, or changing associations. It is distinct from policy-driven deletion of source records. Retrieval may reinforce caller-local accessibility or associations without supplying new factual evidence. Confirmation is not required for every accessibility update; factual-confidence metadata remains a separate, secondary concern.
+
+### 1.5 Memory evolution and changing circumstances
+
+The model distinguishes **recall evolution** (what comes to mind now) from **stored-memory evolution** (what was learned and how it relates to later experience). An update can correct an earlier interpretation, add context, form a new episode, or reflect a genuine change in the world. A memory that was appropriate earlier can become historical without becoming a mistake.
+
+```mermaid
+flowchart TB
+    earlier["Learn: Sam works at A"] --> original["A employment memory"]
+    later["Learn: Sam joins B in July"] --> evolve["Update temporal associations"]
+    original --> evolve
+    evolve --> past["A: historical employment"]
+    evolve --> present["B: employment from July"]
+    currentCue["Where does Sam work now?"] --> present
+    historyCue["Sam's earlier project at A"] --> past
+```
+
+*Figure 4. Changing facts preserve useful history. Current and historical cues can activate different memories. The later observation does not erase the earlier experience or imply it was wrong when formed.*
+
+Implementations representing changing facts MUST distinguish when information was recorded from the period it describes. They MUST preserve revisions while policy permits and distinguish a correction from a state change when that distinction is known. Unknown dates MUST remain unknown. They MUST NOT silently present a known historical state as current solely because it has stronger activation. Historical states remain eligible for contextually appropriate recall.
+
+The [worked memory-evolution example](../examples/memory-evolution.json) and [conceptual TypeScript model](../docs/conceptual-typescript.md) map these four processes to records and policy boundaries. This is the intended memory lifecycle; later sections define the core exchange and its limits.
 
 ## 2. Status and conformance language
 
@@ -45,14 +114,14 @@ Optional profiles are deliberately outside the core:
 
 | Profile | Possible responsibility |
 | --- | --- |
-| Consolidation | Trace admission, merging, splitting, abstractions, durable engrams |
+| Memory lifecycle | Detailed formation/learning receipts, consolidation, merging, splitting, and semantic abstractions |
 | Associative activation | Weighted edges, propagation, inhibition, decay |
 | Stochastic recall | Controlled variability, random-source identity, reproducibility limits |
 | Lifecycle management | Suppression, archival, deletion, retention completion reporting |
 | Portable bundles | Export/import of canonical records with provenance and policy |
 | Context assembly | Token budgets and model-specific context construction |
 
-These profiles have no wire contracts yet. An engine MUST NOT advertise one as interoperable solely because it has a similarly named internal feature.
+These profiles have no wire contracts yet. The automatic memory lifecycle is central to the reference-engine vision; these profiles standardize richer exchanges around it, rather than making the vision a context-window optimization. The core admission receipt does not claim that consolidation has completed. An engine MUST NOT advertise an optional profile as interoperable solely because it has a similarly named internal feature.
 
 ## 4. Actors, identity, and boundaries
 
@@ -100,7 +169,7 @@ flowchart TB
     T --> C
 ```
 
-*Figure 2. Private and shared recall use separate scoped sessions. The host may combine authorized outputs for the caller while retaining each result's scope and provenance. Unauthorized memories never enter recall.*
+*Figure 5. Private and shared recall use separate scoped sessions. The host may combine authorized outputs for the caller while retaining each result's scope and provenance. Unauthorized memories never enter recall.*
 
 ### 4.3 Session ownership and combining results
 
@@ -134,7 +203,7 @@ An observation supplies `observationId`, `kind`, `content`, `observedAt`, and a 
 
 Evidence MUST preserve the admitted content and provenance while retained. Corrections are new observations referencing the old evidence; they MUST NOT silently rewrite it. Evidence records attest to what was reported, not the truth of that report. Policy-driven redaction or deletion may make content unavailable; section 12 governs how that is reported.
 
-The service may form a temporary trace immediately. No durable engram, particular admission gate, or learning algorithm is required by the core.
+The reference engine automatically evaluates observations for trace formation, associations, and durable encoding under its policies. The host need not choose each memory manually. The core admission receipt confirms recorded evidence, not completion of every learning effect; a richer lifecycle receipt is deferred to an optional profile. No particular gate, learning algorithm, or durable engram for every observation is required by the core exchange.
 
 ### 5.2 Recall candidates
 
@@ -147,6 +216,7 @@ A candidate is one surfaced interpretation in a session:
 | `content` | The recalled interpretation as JSON |
 | `activation` | Engine-local accessibility estimate in [0, 1] |
 | `relevance` | Engine-local fit to the current cues in [0, 1], or null if unknown |
+| `validTime` (optional) | `{from, until}` for a temporal claim, or null when unknown; UTC bounds use an inclusive start and exclusive end. A null from is an unknown start; a null until means no end has been recorded. Omission does not assert current validity. |
 | `factualConfidence` | Engine-local credibility estimate in [0, 1], or null if unknown |
 | `uncertainty` | Object with `ambiguity`, `contradiction`, `sourceDoubt`, and `missingContext`, each [0, 1] or null |
 | `evidenceRefs` | Nonempty array of `{evidenceId, role}`, where role is `supports`, `contradicts`, or `context` |
@@ -155,6 +225,8 @@ A candidate is one surfaced interpretation in a session:
 At least one evidence reference MUST have role `supports` or `context`; the record MUST not imply that all cited evidence supports the content. Whether a record actually entails a claim is a semantic evaluation question, not guaranteed by the presence of an ID.
 
 Higher numerical values mean more of the named property. Scores are estimates, not calibrated probabilities unless a separately described calibration supports that interpretation. Scores MUST NOT be compared across engines as if they had a common statistical scale. Unknown estimates MUST be null rather than fabricated zeroes.
+
+Activation and relevance concern finding memories. Factual confidence, uncertainty, and verification are supplementary metadata; the central objective is memory discovery and evolution. These estimates MUST remain distinct from activation. If a historical claim has a known validity interval, its candidate MUST include validTime or an explicit temporal qualification in content. Recall engines may interpret temporal cues; a standardized temporal-query binding is not yet defined.
 
 Capability discovery identifies the scoring method/configuration through an opaque `engineProfile` string. It is fixed for a session; a changed engine/profile requires a new session. It is not sufficient by itself for deterministic replay.
 
@@ -182,12 +254,12 @@ sequenceDiagram
     S-->>H: original report or unavailable status
 ```
 
-*Figure 3. Ingestion and advancement are separate. A correction adds evidence; an explicit advance communicates its effect on recall. Successful responses here represent committed results.*
+*Figure 6. Ingestion and advancement are separate. A correction adds evidence; an explicit advance communicates its effect on recall. Successful responses here represent committed results.*
 
 | Operation | Input beyond scope and requestId | Successful result and effect |
 | --- | --- | --- |
 | `describe` (read) | None | Protocol versions, engineProfile, supportedScopeKinds, limits, session durability, replay retention, supported optional features |
-| `observe` | Observation | Evidence ID; commits evidence only, without implicitly advancing sessions |
+| `observe` | Observation | Evidence ID; admits an experience for automatic memory processing without implicitly advancing sessions. Receipt confirms evidence admission, not completed consolidation. |
 | `readEvidence` (read) | Evidence ID | Original evidence/provenance or explicit unavailable status |
 | `openSession` | `protocolVersion`, `taskRef`, `expiresAt` | New session ID, version 0, `open` state, engineProfile, empty candidate set |
 | `advanceSession` | Session ID, `expectedVersion`, complete replacement `cues` array, newly selected `evidenceIds` array | Atomically committed next session version and its delta batch |
@@ -218,7 +290,7 @@ stateDiagram-v2
     Expired --> [*]
 ```
 
-*Figure 4. Empty advances still move the version forward. Closed and expired sessions cannot be advanced; a new task session starts with a new identity.*
+*Figure 7. Empty advances still move the version forward. Closed and expired sessions cannot be advanced; a new task session starts with a new identity.*
 
 Versions are nonnegative JSON safe integers, starting at 0. Each accepted advance or close increments the version by exactly one, including an advance with no candidate changes. The service serializes writes per session. A mismatched `expectedVersion` returns `version_conflict` without applying the attempted write. The host must read current state before deciding whether to issue a new request.
 
@@ -240,7 +312,7 @@ A batch contains `sessionId`, `engineProfile`, `fromVersion`, `toVersion`, `stat
 
 Changes MUST describe the complete difference between the old and new host-visible sets. Every changed field is material at the protocol boundary. Engines MAY use rounding, thresholds, or hysteresis before committing their public state, but MUST NOT change a public snapshot without the corresponding delta. Unchanged advances have `changes: []`; silence is distinct from transport failure.
 
-Standard reason codes are `cue_match`, `cue_changed`, `evidence_changed`, `feedback_applied`, `policy_removed`, `budget_evicted`, and `source_unavailable`. Additional codes use `x-` prefixes and MUST NOT change transition semantics. Reason codes are explanations, not proofs. Strengthening and weakening refer to named scores in an update; neither implies increased truth confidence. Suppression is an internal policy; its public removal is a withdrawal.
+Standard reason codes are `cue_match`, `cue_changed`, `evidence_changed`, `feedback_applied`, `memory_formed`, `association_changed`, `reinforced`, `memory_revised`, `state_changed`, `temporal_context`, `policy_removed`, `budget_evicted`, and `source_unavailable`. Additional codes use `x-` prefixes and MUST NOT change transition semantics. Reasons distinguish new cues from reinforcement, revision, and changed world state without requiring every internal learning event to emit a public recall. Strengthening and weakening refer to named scores in an update. Suppression is an internal policy; its public removal is a withdrawal.
 
 Closing produces an empty changes batch with status `closed`, preserving its last set as historical state. Expiry need not produce a retained batch; a read or an expired-operation error tells the host to discard the current set.
 
@@ -254,7 +326,21 @@ Clients apply only batches whose `fromVersion` equals their current version. Red
 
 A snapshot atomically supplies `sessionId`, `engineProfile`, `version`, `status` (`open`, `closed`, or `expired`), and all current candidates. Its status and payload represent the same observation of service state. The binding MUST retain and verify the session's caller/tenant/scope association for snapshots and batches, including restoration; those IDs are not additional authority. The host replaces its local set in full. It must clear expired/closed recalls from active use and must discard cached recalls when access is revoked, even if previously delivered history contains them.
 
-## 10. Feedback and evidence discipline
+## 10. Reinforcement, feedback, and evolution
+
+An engine's automatic policy may use the following distinct events. These describe behavior, not additional mandatory transport operations:
+
+| Event | Possible effect on future memory |
+| --- | --- |
+| Salient or novel experience | Form a durable memory after one encounter or initialize accessible associations |
+| Distinct recurrence or rehearsal | Strengthen accessibility, selected associations, or stability |
+| Accepted retrieval | Refresh caller-local accessibility or reinforce selected pathways |
+| Useful outcome | Strengthen a useful procedure or cue pathway |
+| New contextual detail | Link, separate, or revise memories and their associations |
+| Observed state change | Form a new state, update temporal associations, preserve the earlier state as history |
+| Correction or rejection | Revise an interpretation, weaken a distracting pathway, or preserve competing accounts |
+
+Policies MUST distinguish distinct learning events from replays of the same event. Retried observation, feedback, and advance requests MUST NOT duplicate learning effects within the declared replay window in section 9. A reference-engine profile must declare its internal learning-event deduplication lifetime; an absent old receipt does not establish an old outcome. Autonomous consolidation must retain attributable inputs and the scope restrictions in section 4. Its effects become visible to an existing recall session only on a later explicit advance.
 
 Feedback kinds are `confirmed`, `rejected`, `corrected`, `useful`, and `independently_supported`. The caller identifies the candidate and a committed version where that candidate was present. If the historical candidate/version is not retained, the service returns `feedback_target_unavailable`; it MUST NOT attach feedback to a different current interpretation by guesswork.
 
@@ -262,7 +348,7 @@ Feedback MUST preserve who supplied it, its evidence references, and its stated 
 
 Feedback is private to its caller-owned session unless a separate authorized workflow explicitly submits it as shared input. Evidence references remain restricted to the operation's scope. A private correction cannot be attached to a shared record through a cross-scope evidence reference; until a sharing profile exists, the host must keep that interpretation in its private context. A feedback receipt never implies permission to mutate shared memory.
 
-Recall alone, repeated cues, and replayed feedback MUST NOT count as independent factual support. A service may update accessibility on retrieval; any effect on credibility must have a separately attributable evidential basis. `useful` reports task utility, not factual correctness. Source independence cannot be guaranteed merely because two evidence IDs differ.
+Recall and rehearsal MAY reinforce accessibility or caller-local associations under the configured policy. They MUST NOT count as independent factual support, and any effect on credibility must have a separately attributable evidential basis. A policy may apply cooldowns to repeated unchanged cues. `useful` reports task utility. Source independence cannot be guaranteed merely because two evidence IDs differ. These supplementary evidence rules do not prohibit the reinforcement of recall pathways.
 
 ## 11. Errors
 

@@ -1,6 +1,6 @@
 # Proposed conformance scenarios
 
-These are reviewable behavioral scenarios for [0.1-draft.2](recall-delta-protocol.md), not an executable certification suite. Exact rankings and score values are engine-specific. A future harness should use an engine stub when testing exchange semantics so retrieval variance cannot mask a protocol failure.
+These are reviewable behavioral scenarios for [0.1-draft.3](recall-delta-protocol.md), not an executable certification suite. Exact rankings and score values are engine-specific. A future harness should use an engine stub when testing exchange semantics so retrieval variance cannot mask a protocol failure.
 
 | ID | Setup and action | Required observation |
 | --- | --- | --- |
@@ -47,4 +47,21 @@ These are reviewable behavioral scenarios for [0.1-draft.2](recall-delta-protoco
 | C41 | Attempt implicit promotion or a cross-scope source reference during consolidation | Rejected; a broader audience requires an explicit authorized sharing contract |
 | C42 | A conversation has several authorized participants | Each opens its own caller-owned recall session; conversation membership does not expose another participant's private scope/session |
 
-The [worked transcript](../examples/session-evolution.json) illustrates emerged, updated, withdrawn, unchanged, and closed states. The [TypeScript sketch](../conceptual/recall-session.ts) covers only a subset of client-side scenarios. No evidence-ingestion, authorization, durability, or real engine conformance is established by that sketch.
+## Reference memory-model scenarios
+
+These test the broader associative-memory vision under a declared reference-engine policy. They do not imply that the minimal core exchange prescribes one formation or reinforcement algorithm.
+
+| ID | Setup and action | Required observation under the stated policy |
+| --- | --- | --- |
+| M01 | Supply a single salient experience to a policy configured for immediate admission | Durable memory can form without a second exposure or a manual remember command |
+| M02 | Supply progressively distinguishing person/topic/time cues | An engine can narrow or replace competing recollections while keeping session activation separate from durable memory |
+| M03 | Retry a retrieval or learning event within the declared replay window after a lost response | Its activation/reinforcement effects are applied at most once per logical event |
+| M04 | Retrieve/rehearse a memory under an accessibility-reinforcement policy | Accessibility or selected caller-local pathways may strengthen without an increase in factual confidence |
+| M05 | Allow an unselected trace to expire or leave active context | Trace accessibility can disappear while evidence remains retained under policy and older engrams remain recallable |
+| M06 | Learn in June that employment changes in July | Recorded time and valid time differ; the older state becomes historical in July without being marked as an original error |
+| M07 | Recall employment in March versus August, using current recorded knowledge | Earlier and later states can be selected respectively; old superseded revisions are not all treated as current |
+| M08 | Ask what was known before the June update | Version selection respects the recorded-time cutoff before testing validity |
+| M09 | Revise a candidate's known validity interval | The complete candidate update preserves temporal metadata and prior snapshots |
+| M10 | Learn a change with no known effective date | The engine preserves unknown temporal bounds rather than inventing a date |
+
+The [session transcript](../examples/session-evolution.json) illustrates emerged, updated, withdrawn, unchanged, and closed states. The [memory-evolution example](../examples/memory-evolution.json) illustrates versions, temporal queries, and reinforcement. The [session reducer](../conceptual/recall-session.ts) covers only a subset of client-side scenarios, while the [memory-model contracts](../conceptual/memory-model.ts) are types with no policy implementation. No evidence-ingestion, authorization, durability, or full memory-engine conformance is established by those sketches.

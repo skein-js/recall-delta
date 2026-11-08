@@ -1,24 +1,28 @@
 # Recall Delta
 
-**A discussion draft of a protocol for evolving agent recall.**
+**An evolving associative memory system for agents, expressed through a framework-neutral protocol.**
 
-Recall Delta Protocol defines how an agent host exchanges observations and maintains a session of evidence-linked recollections with a memory service. As context changes, the service reports which recollections appeared, changed, or were withdrawn. The host can update its working context without treating recalled content as authoritative state.
+Experiences form memories and connections. Current context activates relevant recollections. Reinforcement and new experiences reshape what can be recalled over time. Recall Delta Protocol defines the exchange between a host and a memory engine that supports this lifecycle.
+
+The host supplies observations rather than deciding which individual experiences to save or discard. The engine's policies determine which traces fade, which become durable memories, how associations strengthen or weaken, and how interpretations change as circumstances evolve.
 
 The proposed contract separates three things:
 
-1. **Evidence:** a record of what a source reported, including provenance. Recording a statement does not establish that it is true.
-2. **Memory:** interpretations derived from evidence, which may be revised or contradicted.
-3. **Recall:** the candidates currently surfaced to a particular task, with separate activation, relevance, and factual-confidence estimates.
+1. **Experience and evidence:** observations and the retained source record from which memories form.
+2. **Associative memory:** temporary traces, durable representations, and connections that evolve through learning.
+3. **Recall:** the context-dependent activation and reconstruction of relevant memories during a task.
 
-The protocol is independent of programming language, model, agent framework, storage engine, and retrieval algorithm. Deterministic retrieval is allowed. Graph activation, consolidation, and stochastic recall are optional implementation choices.
+The protocol is independent of programming language, model, agent framework, storage engine, and retrieval algorithm. It standardizes observable exchange semantics while leaving formation, activation, and consolidation algorithms replaceable. A simple retrieval-plus-diff engine remains a useful experimental baseline; it does not demonstrate the full associative-memory vision by itself.
 
-The central design goal is **human-inspired, cue-dependent remembering and recall**. Recall can be absent, incomplete, or initially wrong and then improve as a conversation supplies better evidence. Remembering matters just as much: temporary traces can become durable memories through selective encoding and consolidation. Activation persists as the task evolves; new cues can change which memories come to mind. The exchange contract represents those behaviors; Part II explores an engine that could produce them. See the [design context](docs/design-context.md).
+The central design goal is **finding memories and letting memory evolve**. Recall can be absent, incomplete, or initially wrong and become more specific as useful cues accumulate. A salient experience may form a durable memory after one encounter; rehearsal, retrieval, and useful outcomes may reinforce later accessibility. New experiences can revise an interpretation or change which fact is current. An earlier memory can remain useful for historical recall even after circumstances change.
+
+The [illustrated memory model](spec/recall-delta-protocol.md#1-definition-and-memory-model) covers formation, associative recall, reinforcement, and evolution over time. The human analogy motivates the design; the proposal does not claim to reproduce a brain. Context compaction and credibility metadata are supporting concerns. See the [design context](docs/design-context.md).
 
 **Private by default.** An agent serving multiple people binds memory operations to an authenticated caller and an authorized tenant/scope. Personal and shared memories have separate permissions; recall sessions and private feedback remain caller-specific even when using shared knowledge. Derived memories preserve source restrictions. See [identity and memory isolation](spec/recall-delta-protocol.md#4-actors-identity-and-boundaries).
 
 ## Part I — The protocol
 
-Read the [Recall Delta Protocol draft](spec/recall-delta-protocol.md) first. It proposes the vocabulary, operation semantics, session lifecycle, delta ordering, provenance requirements, errors, and extension boundaries.
+Read the [Recall Delta Protocol draft](spec/recall-delta-protocol.md) first. It explains the memory lifecycle before proposing the exchange vocabulary, operation semantics, session lifecycle, delta ordering, provenance, and extension boundaries.
 
 For example, one recall session might evolve like this:
 
@@ -32,24 +36,25 @@ For example, one recall session might evolve like this:
 These are illustrative outcomes, not prescribed rankings. Engines may recall different candidates while obeying the same exchange semantics.
 
 - [Example session transcript](examples/session-evolution.json)
+- [Memory reinforcement and changing-fact example](examples/memory-evolution.json)
 - [Conformance scenarios](spec/conformance.md)
 - [Questions for reviewers](docs/design-questions.md)
 
 ## Part II — A conceptual TypeScript implementation
 
-Read the [TypeScript implementation concept](docs/conceptual-typescript.md) after the protocol. It explains host integration, engine and storage boundaries, an illustrative deterministic scoring approach, and a small [session reducer](conceptual/recall-session.ts).
+Read the [TypeScript implementation concept](docs/conceptual-typescript.md) after the protocol. It maps the lifecycle to [memory-model types](conceptual/memory-model.ts), automatic formation policies, reinforcement, versioned temporal memory, and the existing [session reducer](conceptual/recall-session.ts).
 
 The TypeScript is an explanatory sketch. There is no SDK, memory engine, service, database adapter, or production implementation in this repository.
 
 ## Why explore this?
 
-The design hypothesis is that a common contract for changing recollection will make memory integrations easier to inspect and replace. Evidence separation, temporal memory, associative retrieval, confidence estimates, and consolidation all have substantial prior work. We do not claim to have invented them, or to have established that this protocol composition is novel.
+The design hypothesis is that an evolving associative memory model, exposed through a common contract, can help agents find useful experiences as tasks unfold. Temporal memory, associative retrieval, reinforcement, and consolidation all have substantial prior work. We do not claim to have invented them, or to have established that this protocol composition is novel.
 
 The [claim audit](docs/claim-audit.md) records what is supported, overstated, or still unproven in the originating proposal. The [related-work notes](docs/related-work.md) link the primary sources checked on 8 November 2026. There are no Recall Delta performance results yet.
 
 ## Status and feedback
 
-Version: **0.1-draft.2**. Every protocol requirement is proposed and open to change. This is an independent proposal hosted by the Skein organization, not an adopted standard. Package names, transports, bundle formats, and licensing remain undecided.
+Version: **0.1-draft.3**. Every protocol requirement is proposed and open to change. This is an independent proposal hosted by the Skein organization, not an adopted standard. Package names, transports, bundle formats, and licensing remain undecided.
 
 Start with these questions:
 

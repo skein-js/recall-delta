@@ -37,6 +37,18 @@ The naming examples [Kumbuka](https://docs.kumbuka.ai/en/) and [Mnestra](https:/
 
 ## Claims we can make now
 
-Recall Delta **proposes** a common host/service contract for evolving recall candidates, evidence references, uncertainty, and withdrawal. Existing research supplies plausible algorithms behind that boundary. Whether this contract is sufficiently distinct, useful, and implementable across products is the question for the first review round.
+Recall Delta **proposes** an evolving associative memory model and a common host/service contract for its observable recall changes. Formation, associations, reinforcement, temporal evolution, and context-sensitive discovery are the motivating behaviors. Existing research supplies plausible mechanisms behind that boundary. Whether the proposed combination is sufficiently distinct, useful, and implementable across products is the question for the first review round.
 
 We cannot yet claim better recall, lower token use, less hallucination, equivalent behavior across stores, automatic safety, biological accuracy, or exclusive ownership of the idea.
+
+## Human-memory inspiration
+
+These sources motivate the illustrations, not a claim that an agent context window is a brain or that the proposed engine implements human cognition:
+
+| Source | Relevant observation or account | Design connection |
+| --- | --- | --- |
+| [Horner et al., 2015](https://www.nature.com/articles/ncomms8462) | Experimental evidence linking bound event elements and pattern completion | Partial cues can recover associated details |
+| [Roediger and Karpicke, 2006](https://pubmed.ncbi.nlm.nih.gov/16507066/) | Retrieval practice improved delayed retention in their experiments, including without feedback | Accessibility reinforcement need not require factual confirmation |
+| [Cowan, 2008](https://pmc.ncbi.nlm.nih.gov/articles/PMC2657600/) | Theoretical account of overlapping working/short-term memory concepts and alternative definitions | Avoid depicting a mandatory working-to-short-to-long conveyor belt |
+
+Salience, decay parameters, association updates, and automatic admission in the TypeScript concept are proposed engineering policies, not measurements of human memory. The changing-employment example is synthetic and illustrates temporal state, not a neuroscientific experiment.
