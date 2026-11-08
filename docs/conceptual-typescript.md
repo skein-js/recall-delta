@@ -1,5 +1,7 @@
 # Part II — Conceptual TypeScript implementation
 
+License: [CC BY 4.0](../LICENSE-CC-BY) for prose and illustrations; [Apache-2.0](../LICENSE-APACHE) for implementation code, pseudocode, and JSON examples. See [licensing scope](../LICENSE.md).
+
 This section maps the [evolving associative memory model](../spec/recall-delta-protocol.md#1-definition-and-memory-model) to a possible TypeScript engine. Experiences form traces and engrams; context activates associations; reinforcement changes future accessibility; new experiences produce revisions and temporal history. Persistent accessibility can decay, and a separate retention policy can evict eligible representations. The protocol owns observable exchange behavior. These types and implementation choices are explanatory, with no published SDK, storage adapter, or complete engine.
 
 ## 1. Boundaries

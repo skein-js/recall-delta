@@ -16,4 +16,8 @@ The protocol is language-neutral. Keep the conceptual TypeScript section aligned
 
 For changes to session semantics, update the [conformance scenarios](spec/conformance.md) and [example transcript](examples/session-evolution.json). Changes to formation, reinforcement, or temporal evolution should also align with the [memory-evolution example](examples/memory-evolution.json) and [memory-model contracts](conceptual/memory-model.ts). Changes to decay, retention, or eviction should align with the [decay/eviction cases](examples/decay-eviction.json), maintenance contracts, and corresponding conformance scenarios. Type-check changed conceptual TypeScript files. The sketches do not establish service-level conformance.
 
-Licensing and contributor terms are still under discussion. This initial publication grants no additional license beyond the platform's terms; the original proposal's suggested licenses have not yet been adopted.
+## Contribution licensing
+
+By intentionally submitting a contribution for inclusion in this repository, you offer it under the license applicable to that material in [LICENSE.md](LICENSE.md): CC BY 4.0 for protocol/documentation prose and illustrations, or Apache-2.0 for code, configuration, and machine-readable examples. Implementation snippets embedded in documentation use Apache-2.0; Mermaid illustrations use CC BY 4.0.
+
+Submit only material you have the right to contribute under those terms, and preserve applicable third-party notices. Contributors retain their copyright; no copyright assignment is required. This repository does not require a separate contributor license agreement or sign-off process. A separate protocol patent policy and formal governance remain open design questions.

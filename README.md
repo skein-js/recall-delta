@@ -57,7 +57,7 @@ The [claim audit](docs/claim-audit.md) records what is supported, overstated, or
 
 ## Status and feedback
 
-Version: **0.1-draft.4**. Every protocol requirement is proposed and open to change. This is an independent proposal hosted by the Skein organization, not an adopted standard. Package names, transports, bundle formats, and licensing remain undecided.
+Version: **0.1-draft.4**. Every protocol requirement is proposed and open to change. This is an independent proposal hosted by the Skein organization, not an adopted standard. Package names, transports, and bundle formats remain undecided.
 
 Start with these questions:
 
@@ -67,3 +67,7 @@ Start with these questions:
 4. Should observation/feedback be part of the core or separately negotiated profiles?
 
 Please use [GitHub issues](https://github.com/skein-js/recall-delta/issues) or propose an edit. See [CONTRIBUTING.md](CONTRIBUTING.md) for the review format. No invitations or feedback requests are sent automatically.
+
+## License
+
+The protocol, documentation, and original illustrations are licensed under [CC BY 4.0](LICENSE-CC-BY). Code and machine-readable examples, including implementation snippets in the documentation, are licensed under [Apache-2.0](LICENSE-APACHE). See [LICENSE.md](LICENSE.md) for the exact scope and attribution guidance.

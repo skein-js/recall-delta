@@ -1,3 +1,6 @@
+// Copyright 2026 Recall Delta contributors.
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Explanatory session-state sketch for Recall Delta 0.1-draft.4.
  * Not an SDK or a memory engine. Inputs must already pass record-shape,

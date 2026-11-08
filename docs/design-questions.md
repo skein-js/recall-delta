@@ -55,6 +55,6 @@ The draft now proposes user-private defaults, explicit shared scopes, and separa
 
 13. **Which two independent implementations should prove the contract?** A small deterministic engine and an adapter over an existing project would test different assumptions. Which project exposes enough provenance and lifecycle control?
 14. **What would falsify the value proposition?** If retrieval-plus-diff gives equal task results and lower complexity, should we keep only the exchange contract and drop the cognitive architecture from the project?
-15. **What licensing/governance fits?** The original proposal suggested CC BY 4.0 for the spec and Apache-2.0 for future code. This repository has not adopted those licenses or a formal patent/contributor policy; settle those before treating the draft as a released standard or reusable SDK.
+15. **What governance fits?** The repository now uses [CC BY 4.0 for documentation and Apache-2.0 for code/examples](../LICENSE.md), with contributions under the applicable license. What stewardship, decision process, and separate protocol patent policy would help independent implementers? Licensing does not make the draft an adopted standard or a released SDK.
 
 The first review round should focus on definition, boundaries, event semantics, and counterexamples. Transport bindings, npm namespaces, multiple database adapters, and stochastic cognition do not need to be settled to review those ideas.

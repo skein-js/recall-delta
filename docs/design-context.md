@@ -31,4 +31,4 @@ The subsequent multi-user discussion adds a privacy requirement: one agent may s
 
 That split keeps the protocol reviewable while preserving the original memory-engine research goal. A stateless retrieval-plus-diff implementation is an important baseline; it is not the whole intended conceptual engine. Whether persistent activation, consolidation, or controlled variability produces a useful improvement remains an empirical question.
 
-GitHub hosting under `skein-js` follows the current request. It does not introduce a Skein runtime dependency. npm ownership, an independent organization, stewardship, and licensing remain open; the earlier Garatropic package namespace was a placeholder, not an accepted constraint.
+GitHub hosting under `skein-js` follows the current request. It does not introduce a Skein runtime dependency. The project owner selected [CC BY 4.0 for the protocol/documentation and Apache-2.0 for code/examples](../LICENSE.md). npm ownership, an independent organization, stewardship, and a separate protocol patent policy remain open; the earlier Garatropic package namespace was a placeholder, not an accepted constraint.

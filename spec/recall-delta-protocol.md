@@ -2,6 +2,8 @@
 
 Version **0.1-draft.4** · 8 November 2026 · Proposed requirements
 
+License: [CC BY 4.0](../LICENSE-CC-BY) for prose and illustrations; [Apache-2.0](../LICENSE-APACHE) for implementation code, pseudocode, and JSON examples. See [licensing scope](../LICENSE.md).
+
 ## 1. Definition and memory model
 
 **Recall Delta is an evolving associative memory system: experiences form memories and connections; context activates relevant recollections; reinforcement and new experiences reshape what can be recalled over time.**

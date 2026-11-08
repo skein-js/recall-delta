@@ -1,3 +1,6 @@
+// Copyright 2026 Recall Delta contributors.
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Conceptual internal contracts for Recall Delta 0.1-draft.4.
  * These types explain formation, association, reinforcement, evolution,
