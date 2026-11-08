@@ -1,0 +1,337 @@
+{
+  "protocolVersion": "0.1-draft.1",
+  "note": "Synthetic data. Score values and retrieval choices are illustrative, not protocol-prescribed. Operations occur in scope demo. Evidence has already been admitted; no operational truth is asserted.",
+  "evidence": [
+    {
+      "evidenceId": "evidence-a",
+      "observationId": "observation-a",
+      "kind": "document",
+      "content": "Incident notes: warehouse A dispatch did not update ERP balance.",
+      "observedAt": "2026-11-01T08:00:00Z",
+      "recordedAt": "2026-11-01T08:00:01Z",
+      "source": {
+        "type": "synthetic-incident-note",
+        "id": "note-a"
+      }
+    },
+    {
+      "evidenceId": "evidence-b",
+      "observationId": "observation-b",
+      "kind": "document",
+      "content": "Initial incident notes: warehouse B dispatch posting was delayed.",
+      "observedAt": "2026-11-02T08:00:00Z",
+      "recordedAt": "2026-11-02T08:00:01Z",
+      "source": {
+        "type": "synthetic-incident-note",
+        "id": "note-b"
+      }
+    },
+    {
+      "evidenceId": "evidence-correction",
+      "observationId": "observation-correction",
+      "kind": "document",
+      "content": {
+        "correctsEvidenceId": "evidence-b",
+        "statement": "The warehouse B dispatch was never posted. The initial delayed-posting explanation was wrong."
+      },
+      "observedAt": "2026-11-08T13:00:00Z",
+      "recordedAt": "2026-11-08T13:00:01Z",
+      "source": {
+        "type": "synthetic-correction",
+        "id": "note-b-correction"
+      }
+    }
+  ],
+  "initialSnapshot": {
+    "sessionId": "session-warehouse",
+    "engineProfile": "example-deterministic-v1",
+    "version": 0,
+    "status": "open",
+    "candidates": []
+  },
+  "advances": [
+    {
+      "context": "There is a stock discrepancy.",
+      "request": {
+        "requestId": "advance-1",
+        "sessionId": "session-warehouse",
+        "expectedVersion": 0,
+        "cues": [
+          "stock discrepancy"
+        ],
+        "evidenceIds": []
+      },
+      "batch": {
+        "sessionId": "session-warehouse",
+        "engineProfile": "example-deterministic-v1",
+        "fromVersion": 0,
+        "toVersion": 1,
+        "status": "open",
+        "changes": []
+      }
+    },
+    {
+      "context": "The ERP balance did not change after dispatch.",
+      "request": {
+        "requestId": "advance-2",
+        "sessionId": "session-warehouse",
+        "expectedVersion": 1,
+        "cues": [
+          "dispatch",
+          "unchanged ERP balance"
+        ],
+        "evidenceIds": []
+      },
+      "batch": {
+        "sessionId": "session-warehouse",
+        "engineProfile": "example-deterministic-v1",
+        "fromVersion": 1,
+        "toVersion": 2,
+        "status": "open",
+        "changes": [
+          {
+            "type": "candidate.emerged",
+            "candidateId": "candidate-a",
+            "reasonCodes": [
+              "cue_match"
+            ],
+            "current": {
+              "candidateId": "candidate-a",
+              "memoryRefs": [],
+              "content": "This resembles a previous dispatch incident at warehouse A.",
+              "activation": 0.62,
+              "relevance": 0.58,
+              "factualConfidence": 0.8,
+              "uncertainty": {
+                "ambiguity": null,
+                "contradiction": null,
+                "sourceDoubt": null,
+                "missingContext": null
+              },
+              "evidenceRefs": [
+                {
+                  "evidenceId": "evidence-a",
+                  "role": "context"
+                }
+              ],
+              "verification": "required"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "context": "More matching details arrive; factual credibility is unchanged.",
+      "request": {
+        "requestId": "advance-3",
+        "sessionId": "session-warehouse",
+        "expectedVersion": 2,
+        "cues": [
+          "dispatch",
+          "unchanged ERP balance",
+          "outbound stock"
+        ],
+        "evidenceIds": []
+      },
+      "batch": {
+        "sessionId": "session-warehouse",
+        "engineProfile": "example-deterministic-v1",
+        "fromVersion": 2,
+        "toVersion": 3,
+        "status": "open",
+        "changes": [
+          {
+            "type": "candidate.updated",
+            "candidateId": "candidate-a",
+            "reasonCodes": [
+              "cue_changed"
+            ],
+            "current": {
+              "candidateId": "candidate-a",
+              "memoryRefs": [],
+              "content": "This resembles a previous dispatch incident at warehouse A.",
+              "activation": 0.77,
+              "relevance": 0.75,
+              "factualConfidence": 0.8,
+              "uncertainty": {
+                "ambiguity": null,
+                "contradiction": null,
+                "sourceDoubt": null,
+                "missingContext": null
+              },
+              "evidenceRefs": [
+                {
+                  "evidenceId": "evidence-a",
+                  "role": "context"
+                }
+              ],
+              "verification": "required"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "context": "This happened in warehouse B.",
+      "request": {
+        "requestId": "advance-4",
+        "sessionId": "session-warehouse",
+        "expectedVersion": 3,
+        "cues": [
+          "warehouse B",
+          "dispatch",
+          "unchanged ERP balance"
+        ],
+        "evidenceIds": []
+      },
+      "batch": {
+        "sessionId": "session-warehouse",
+        "engineProfile": "example-deterministic-v1",
+        "fromVersion": 3,
+        "toVersion": 4,
+        "status": "open",
+        "changes": [
+          {
+            "type": "candidate.withdrawn",
+            "candidateId": "candidate-a",
+            "reasonCodes": [
+              "cue_changed"
+            ]
+          },
+          {
+            "type": "candidate.emerged",
+            "candidateId": "candidate-b",
+            "reasonCodes": [
+              "cue_match"
+            ],
+            "current": {
+              "candidateId": "candidate-b",
+              "memoryRefs": [],
+              "content": "This resembles a previous dispatch incident at warehouse B involving a delayed ERP posting.",
+              "activation": 0.82,
+              "relevance": 0.86,
+              "factualConfidence": 0.72,
+              "uncertainty": {
+                "ambiguity": null,
+                "contradiction": null,
+                "sourceDoubt": null,
+                "missingContext": null
+              },
+              "evidenceRefs": [
+                {
+                  "evidenceId": "evidence-b",
+                  "role": "context"
+                }
+              ],
+              "verification": "required"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "context": "A new source corrects the warehouse B explanation. The original source remains intact.",
+      "request": {
+        "requestId": "advance-5",
+        "sessionId": "session-warehouse",
+        "expectedVersion": 4,
+        "cues": [
+          "warehouse B",
+          "unposted dispatch"
+        ],
+        "evidenceIds": [
+          "evidence-correction"
+        ]
+      },
+      "batch": {
+        "sessionId": "session-warehouse",
+        "engineProfile": "example-deterministic-v1",
+        "fromVersion": 4,
+        "toVersion": 5,
+        "status": "open",
+        "changes": [
+          {
+            "type": "candidate.updated",
+            "candidateId": "candidate-b",
+            "reasonCodes": [
+              "evidence_changed"
+            ],
+            "current": {
+              "candidateId": "candidate-b",
+              "memoryRefs": [],
+              "content": "The warehouse B incident involved an unposted dispatch, rather than a delayed posting.",
+              "activation": 0.82,
+              "relevance": 0.86,
+              "factualConfidence": 0.85,
+              "uncertainty": {
+                "ambiguity": null,
+                "contradiction": null,
+                "sourceDoubt": null,
+                "missingContext": null
+              },
+              "evidenceRefs": [
+                {
+                  "evidenceId": "evidence-b",
+                  "role": "context"
+                },
+                {
+                  "evidenceId": "evidence-correction",
+                  "role": "supports"
+                }
+              ],
+              "verification": "required"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "close": {
+    "request": {
+      "requestId": "close-1",
+      "sessionId": "session-warehouse",
+      "expectedVersion": 5
+    },
+    "batch": {
+      "sessionId": "session-warehouse",
+      "engineProfile": "example-deterministic-v1",
+      "fromVersion": 5,
+      "toVersion": 6,
+      "status": "closed",
+      "changes": []
+    }
+  },
+  "finalSnapshot": {
+    "sessionId": "session-warehouse",
+    "engineProfile": "example-deterministic-v1",
+    "version": 6,
+    "status": "closed",
+    "candidates": [
+      {
+        "candidateId": "candidate-b",
+        "memoryRefs": [],
+        "content": "The warehouse B incident involved an unposted dispatch, rather than a delayed posting.",
+        "activation": 0.82,
+        "relevance": 0.86,
+        "factualConfidence": 0.85,
+        "uncertainty": {
+          "ambiguity": null,
+          "contradiction": null,
+          "sourceDoubt": null,
+          "missingContext": null
+        },
+        "evidenceRefs": [
+          {
+            "evidenceId": "evidence-b",
+            "role": "context"
+          },
+          {
+            "evidenceId": "evidence-correction",
+            "role": "supports"
+          }
+        ],
+        "verification": "required"
+      }
+    ]
+  }
+}
